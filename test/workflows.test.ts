@@ -11,6 +11,7 @@ describe('workflow contracts', () => {
 
     for (const workflow of workflows) {
       expect(existsSync(workflow), `${workflow} should exist`).toBe(true);
+      expect(readFileSync(workflow, 'utf8')).toContain('pnpm/action-setup@v4');
     }
 
     expect(readFileSync('.github/workflows/monitor-releases.yml', 'utf8')).toContain('node dist/cli/check-for-upstream-release.js');
