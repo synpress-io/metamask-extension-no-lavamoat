@@ -528,4 +528,96 @@ describe('buildGitHubReleasePublishPlan', () => {
     expect(integrity.valid).toBe(false);
     expect(integrity.mismatchedAssetNames).toEqual(['release-manifest.json']);
   });
+
+  it('downloads manifest and checksums through the GitHub asset api when direct release URLs are not readable', async () => {
+    const digest = 'a'.repeat(64);
+
+    globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url === 'https://api.example.test/assets/manifest') {
+        return new Response(
+          JSON.stringify({
+            upstream: {
+              tag: 'v13.25.0',
+              version: '13.25.0',
+              sourceTarballUrl: 'https://example.test/source.tar.gz',
+              officialAssets: {
+                chrome: {
+                  url: 'https://example.test/chrome.zip',
+                  sha256: 'b'.repeat(64)
+                }
+              }
+            },
+            builder: {
+              tag: 'v13.25.0-no-lavamoat',
+              repository: 'synpress-io/metamask-extension-no-lavamoat',
+              timestamp: '2026-04-02T00:00:00.000Z'
+            },
+            build: {
+              targets: ['chrome'],
+              command: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false'],
+              lavamoat: false
+            },
+            assets: [
+              {
+                name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+                path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+                sha256: digest,
+                size: 123
+              }
+            ]
+          }),
+          { status: 200 }
+        );
+      }
+
+      if (url === 'https://api.example.test/assets/checksums') {
+        return new Response(`${digest}  metamask-chrome-13.25.0-no-lavamoat.zip\n`, { status: 200 });
+      }
+
+      if (url.endsWith('/release-manifest.json') || url.endsWith('/SHA256SUMS.txt')) {
+        return new Response('not readable', { status: 404 });
+      }
+
+      throw new Error(`unexpected fetch for ${url}`);
+    }) as typeof fetch;
+
+    const integrity = await inspectPublishedReleaseIntegrity(
+      {
+        exists: true,
+        assets: [
+          {
+            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            digest: `sha256:${digest}`
+          },
+          {
+            name: 'release-manifest.json',
+            apiUrl: 'https://api.example.test/assets/manifest',
+            browserDownloadUrl: 'https://example.test/release-manifest.json'
+          },
+          {
+            name: 'SHA256SUMS.txt',
+            apiUrl: 'https://api.example.test/assets/checksums',
+            browserDownloadUrl: 'https://example.test/SHA256SUMS.txt'
+          }
+        ],
+        assetNames: ['metamask-chrome-13.25.0-no-lavamoat.zip', 'release-manifest.json', 'SHA256SUMS.txt']
+      },
+      undefined,
+      {
+        expectedBuilderReleaseTag: 'v13.25.0-no-lavamoat',
+        expectedRepository: 'synpress-io/metamask-extension-no-lavamoat',
+        expectedUpstreamTag: 'v13.25.0',
+        expectedUpstreamVersion: '13.25.0',
+        expectedSourceTarballUrl: 'https://example.test/source.tar.gz',
+        expectedOfficialChromeZipUrl: 'https://example.test/chrome.zip',
+        expectedOfficialChromeZipSha256: 'b'.repeat(64)
+      }
+    );
+
+    expect(integrity.valid).toBe(true);
+    expect(integrity.missingAssetNames).toEqual([]);
+    expect(integrity.mismatchedAssetNames).toEqual([]);
+  });
 });

@@ -45,6 +45,7 @@ export interface ReleaseCompleteness {
 export interface GitHubReleaseAsset {
   name: string;
   digest?: string;
+  apiUrl?: string;
   browserDownloadUrl?: string;
 }
 
@@ -139,7 +140,7 @@ export async function inspectGitHubRelease(
   }
 
   const payload = (await response.json()) as {
-    assets?: Array<{ name?: string; digest?: string; browser_download_url?: string }>;
+    assets?: Array<{ name?: string; digest?: string; browser_download_url?: string; url?: string }>;
   };
 
   const assets = (payload.assets ?? []).flatMap((asset) =>
@@ -148,6 +149,7 @@ export async function inspectGitHubRelease(
           {
             name: asset.name,
             digest: asset.digest,
+            apiUrl: asset.url,
             browserDownloadUrl: asset.browser_download_url
           }
         ]
@@ -355,6 +357,28 @@ function isReleaseManifest(value: unknown): value is ReleaseManifest {
   });
 }
 
+async function downloadReleaseAsset(
+  asset: Pick<GitHubReleaseAsset, 'apiUrl' | 'browserDownloadUrl'>,
+  token?: string
+): Promise<Response> {
+  if (asset.apiUrl) {
+    return fetch(asset.apiUrl, {
+      headers: {
+        ...gitHubHeaders(token),
+        Accept: 'application/octet-stream'
+      }
+    });
+  }
+
+  if (asset.browserDownloadUrl) {
+    return fetch(asset.browserDownloadUrl, {
+      headers: gitHubHeaders(token)
+    });
+  }
+
+  return new Response(null, { status: 404 });
+}
+
 export async function inspectPublishedReleaseIntegrity(
   inspection: GitHubReleaseInspection,
   token?: string,
@@ -364,24 +388,20 @@ export async function inspectPublishedReleaseIntegrity(
   const manifestAsset = assetsByName.get(RELEASE_ARTIFACT_NAMES.manifest);
   const checksumsAsset = assetsByName.get(RELEASE_ARTIFACT_NAMES.checksums);
 
-  if (!manifestAsset?.browserDownloadUrl || !checksumsAsset?.browserDownloadUrl) {
+  if ((!manifestAsset?.apiUrl && !manifestAsset?.browserDownloadUrl) || (!checksumsAsset?.apiUrl && !checksumsAsset?.browserDownloadUrl)) {
     return {
       valid: false,
       missingAssetNames: [
-        ...(manifestAsset?.browserDownloadUrl ? [] : [RELEASE_ARTIFACT_NAMES.manifest]),
-        ...(checksumsAsset?.browserDownloadUrl ? [] : [RELEASE_ARTIFACT_NAMES.checksums])
+        ...(manifestAsset?.apiUrl || manifestAsset?.browserDownloadUrl ? [] : [RELEASE_ARTIFACT_NAMES.manifest]),
+        ...(checksumsAsset?.apiUrl || checksumsAsset?.browserDownloadUrl ? [] : [RELEASE_ARTIFACT_NAMES.checksums])
       ],
       mismatchedAssetNames: []
     };
   }
 
   const [manifestResponse, checksumsResponse] = await Promise.all([
-    fetch(manifestAsset.browserDownloadUrl, {
-      headers: gitHubHeaders(token)
-    }),
-    fetch(checksumsAsset.browserDownloadUrl, {
-      headers: gitHubHeaders(token)
-    })
+    downloadReleaseAsset(manifestAsset, token),
+    downloadReleaseAsset(checksumsAsset, token)
   ]);
 
   if (!manifestResponse.ok || !checksumsResponse.ok) {
