@@ -1,8 +1,12 @@
 import { stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { resolveBuildConfigFromOfficialReleaseZip } from '../lib/config.js';
 import { executeNoLavaMoatBuild } from '../lib/build.js';
+import { DEFAULT_BUILDER_REPOSITORY, toBuilderReleaseTag } from '../lib/contracts.js';
+import { buildGitHubReleasePublishPlan } from '../lib/github-release.js';
+import { buildChecksumsText, buildReleaseManifest, type ReleaseManifestAsset } from '../lib/release-manifest.js';
 import { prepareSourceWorkspace } from '../lib/source.js';
 import { fetchLatestUpstreamRelease, fetchUpstreamReleaseByTag } from '../lib/upstream.js';
 
@@ -45,6 +49,16 @@ async function sha256(path: string): Promise<string> {
   return createHash('sha256').update(contents).digest('hex');
 }
 
+function currentCommit(): string | undefined {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      encoding: 'utf8'
+    }).trim();
+  } catch {
+    return process.env.GITHUB_SHA;
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const release = args.tag ? await fetchUpstreamReleaseByTag(args.tag) : await fetchLatestUpstreamRelease();
@@ -78,18 +92,43 @@ async function main() {
     infuraProjectId: config.infuraProjectId
   });
 
+  const releaseAssets: ReleaseManifestAsset[] = [
+    {
+      name: artifacts.chromeZipPath.split('/').pop() as string,
+      path: artifacts.chromeZipPath,
+      sha256: await sha256(artifacts.chromeZipPath),
+      size: (await stat(artifacts.chromeZipPath)).size
+    }
+  ];
+
+  const manifest = buildReleaseManifest({
+    upstreamTag: release.tag,
+    upstreamVersion: release.version,
+    sourceTarballUrl: release.sourceTarballUrl,
+    officialChromeZipUrl: release.chromeZipUrl,
+    officialChromeZipSha256: release.chromeZipSha256,
+    builderReleaseTag: toBuilderReleaseTag(release.tag),
+    buildCommand: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false'],
+    assets: releaseAssets,
+    repository: process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
+    commit: currentCommit(),
+    timestamp: new Date().toISOString()
+  });
+
+  const publishPlan = buildGitHubReleasePublishPlan({
+    upstreamTag: release.tag,
+    assetPaths: releaseAssets.map((asset) => asset.path)
+  });
+
   console.log(
     JSON.stringify(
       {
         upstreamTag: release.tag,
         workspaceRoot: workspace.rootDir,
-        artifacts: [
-          {
-            path: artifacts.chromeZipPath,
-            sha256: await sha256(artifacts.chromeZipPath),
-            size: (await stat(artifacts.chromeZipPath)).size
-          }
-        ]
+        configSource: config.source,
+        checksums: buildChecksumsText(releaseAssets),
+        manifest,
+        publishPlan
       },
       null,
       2

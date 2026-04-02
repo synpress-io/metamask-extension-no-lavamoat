@@ -5,6 +5,7 @@ import {
   toBuilderReleaseTag
 } from './contracts.js';
 import { MissingChromeAssetError } from './errors.js';
+import { checkGitHubReleaseExists } from './github-release.js';
 
 const GITHUB_API_BASE_URL = 'https://api.github.com';
 
@@ -117,33 +118,14 @@ export async function fetchUpstreamReleaseByTag(tag: string, token?: string): Pr
   return deriveReleaseRecord(payload);
 }
 
-export async function builderReleaseExists(
-  builderReleaseTag: string,
-  repository = process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
-  token?: string
-): Promise<boolean> {
-  const response = await fetch(
-    `${GITHUB_API_BASE_URL}/repos/${repository}/releases/tags/${encodeURIComponent(builderReleaseTag)}`,
-    {
-      headers: gitHubHeaders(token)
-    }
-  );
-
-  if (response.status === 404) {
-    return false;
-  }
-
-  if (!response.ok) {
-    throw new Error(`Builder release lookup failed (${response.status}) for ${builderReleaseTag}`);
-  }
-
-  return true;
-}
-
 export async function resolveReleaseCheckDecision(tag?: string, token?: string): Promise<ReleaseCheckDecision> {
   const release = tag ? await fetchUpstreamReleaseByTag(tag, token) : await fetchLatestUpstreamRelease(token);
   const builderReleaseTag = toBuilderReleaseTag(release.tag);
-  const exists = await builderReleaseExists(builderReleaseTag, undefined, token);
+  const exists = await checkGitHubReleaseExists(
+    builderReleaseTag,
+    process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
+    token
+  );
 
   return {
     upstreamTag: release.tag,
