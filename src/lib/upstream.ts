@@ -6,7 +6,12 @@ import {
   toBuilderReleaseTag
 } from './contracts.js';
 import { MissingChromeAssetError } from './errors.js';
-import { checkGitHubReleaseExists } from './github-release.js';
+import {
+  evaluateReleaseCompleteness,
+  expectedReleaseAssetNames,
+  inspectGitHubRelease,
+  inspectPublishedReleaseIntegrity
+} from './github-release.js';
 
 const GITHUB_API_BASE_URL = 'https://api.github.com';
 
@@ -37,6 +42,9 @@ export interface ReleaseCheckDecision {
   builderReleaseTag: string;
   shouldBuild: boolean;
   builderReleaseExists: boolean;
+  builderReleaseComplete: boolean;
+  builderReleaseIntegrityValid: boolean;
+  missingBuilderAssets: string[];
 }
 
 function normalizeDigest(digest?: string): string | undefined {
@@ -124,19 +132,55 @@ export async function fetchUpstreamReleaseByTag(tag: string, token?: string): Pr
   return deriveReleaseRecord(payload);
 }
 
+export interface BuildReleaseCheckDecisionInput {
+  release: UpstreamReleaseRecord;
+  builderReleaseExists: boolean;
+  builderReleaseAssetNames: string[];
+  builderReleaseIntegrityValid?: boolean;
+}
+
+export function buildReleaseCheckDecision(input: BuildReleaseCheckDecisionInput): ReleaseCheckDecision {
+  const builderReleaseTag = toBuilderReleaseTag(input.release.tag);
+  const completeness = evaluateReleaseCompleteness({
+    expectedAssetNames: expectedReleaseAssetNames(input.release.version),
+    actualAssetNames: input.builderReleaseAssetNames
+  });
+
+  return {
+    upstreamTag: input.release.tag,
+    builderReleaseTag,
+    shouldBuild: !input.builderReleaseExists || !completeness.complete || input.builderReleaseIntegrityValid === false,
+    builderReleaseExists: input.builderReleaseExists,
+    builderReleaseComplete: input.builderReleaseExists && completeness.complete,
+    builderReleaseIntegrityValid: input.builderReleaseExists ? input.builderReleaseIntegrityValid ?? true : false,
+    missingBuilderAssets: input.builderReleaseExists ? completeness.missingAssetNames : expectedReleaseAssetNames(input.release.version)
+  };
+}
+
 export async function resolveReleaseCheckDecision(tag?: string, token?: string): Promise<ReleaseCheckDecision> {
   const release = tag ? await fetchUpstreamReleaseByTag(tag, token) : await fetchLatestUpstreamRelease(token);
   const builderReleaseTag = toBuilderReleaseTag(release.tag);
-  const exists = await checkGitHubReleaseExists(
+  const inspection = await inspectGitHubRelease(
     builderReleaseTag,
     process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
     token
   );
+  const integrity = inspection.exists
+    ? await inspectPublishedReleaseIntegrity(inspection, token, {
+        expectedBuilderReleaseTag: builderReleaseTag,
+        expectedRepository: process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
+        expectedUpstreamTag: release.tag,
+        expectedUpstreamVersion: release.version,
+        expectedSourceTarballUrl: release.sourceTarballUrl,
+        expectedOfficialChromeZipUrl: release.chromeZipUrl,
+        expectedOfficialChromeZipSha256: release.chromeZipSha256
+      })
+    : undefined;
 
-  return {
-    upstreamTag: release.tag,
-    builderReleaseTag,
-    shouldBuild: !exists,
-    builderReleaseExists: exists
-  };
+  return buildReleaseCheckDecision({
+    release,
+    builderReleaseExists: inspection.exists,
+    builderReleaseAssetNames: inspection.assetNames,
+    builderReleaseIntegrityValid: integrity?.valid
+  });
 }

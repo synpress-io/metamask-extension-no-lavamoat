@@ -14,7 +14,13 @@ describe('workflow contracts', () => {
     }
 
     expect(readFileSync('.github/workflows/monitor-releases.yml', 'utf8')).toContain('node dist/cli/check-for-upstream-release.js');
-    expect(readFileSync('.github/workflows/build-release.yml', 'utf8')).toContain('node dist/cli/build-release.js');
+    const buildReleaseWorkflow = readFileSync('.github/workflows/build-release.yml', 'utf8');
+    expect(buildReleaseWorkflow).toContain('node dist/cli/build-release.js');
+    expect(buildReleaseWorkflow).toContain('node dist/cli/resolve-upstream-tag.js');
+    expect(buildReleaseWorkflow).toContain('node dist/cli/check-for-upstream-release.js --tag');
+    expect(buildReleaseWorkflow).toContain("should_build == 'true'");
+    expect(buildReleaseWorkflow).toContain('node dist/cli/publish-release.js --build-output build-output.json');
+    expect(buildReleaseWorkflow).toContain('concurrency:');
     expect(readFileSync('.github/workflows/test.yml', 'utf8')).toContain('pnpm run typecheck');
   });
 });

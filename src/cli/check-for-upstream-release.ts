@@ -1,6 +1,7 @@
 import { toBuilderReleaseTag } from '../lib/contracts.js';
-import { checkGitHubReleaseExists } from '../lib/github-release.js';
+import { inspectGitHubRelease } from '../lib/github-release.js';
 import {
+  buildReleaseCheckDecision,
   fetchLatestUpstreamRelease,
   fetchUpstreamReleaseByTag,
   loadFixtureReleaseRecord,
@@ -12,6 +13,8 @@ interface CliArgs {
   dryRun: boolean;
   fixtureRelease?: string;
   builderReleaseExists?: boolean;
+  builderReleaseAssets?: string[];
+  builderReleaseIntegrityValid?: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -57,6 +60,29 @@ function parseArgs(argv: string[]): CliArgs {
       continue;
     }
 
+    if (argument === '--builder-release-assets') {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error('--builder-release-assets requires a comma-separated value');
+      }
+      args.builderReleaseAssets = value
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+      index += 1;
+      continue;
+    }
+
+    if (argument === '--builder-release-integrity-valid') {
+      const value = argv[index + 1];
+      if (value !== 'true' && value !== 'false') {
+        throw new Error('--builder-release-integrity-valid requires true or false');
+      }
+      args.builderReleaseIntegrityValid = value === 'true';
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${argument}`);
   }
 
@@ -69,15 +95,20 @@ async function main() {
     ? await (async () => {
         const release = await loadFixtureReleaseRecord(args.fixtureRelease as string);
         const builderReleaseTag = toBuilderReleaseTag(release.tag);
-        const builderReleaseExists =
-          args.builderReleaseExists ?? (await checkGitHubReleaseExists(builderReleaseTag));
+        const inspection =
+          args.builderReleaseExists === undefined && args.builderReleaseAssets === undefined
+            ? await inspectGitHubRelease(builderReleaseTag)
+            : {
+                exists: args.builderReleaseExists ?? true,
+                assetNames: args.builderReleaseAssets ?? []
+              };
 
-        return {
-          upstreamTag: release.tag,
-          builderReleaseTag,
-          shouldBuild: !builderReleaseExists,
-          builderReleaseExists
-        };
+        return buildReleaseCheckDecision({
+          release,
+          builderReleaseExists: inspection.exists,
+          builderReleaseAssetNames: inspection.assetNames,
+          builderReleaseIntegrityValid: args.builderReleaseIntegrityValid
+        });
       })()
     : await resolveReleaseCheckDecision(args.tag);
 

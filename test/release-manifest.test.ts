@@ -10,6 +10,7 @@ describe('buildReleaseManifest', () => {
       officialChromeZipUrl: 'https://example.test/official-chrome.zip',
       officialChromeZipSha256: 'officialsha',
       builderReleaseTag: 'v13.25.0-no-lavamoat',
+      targets: ['chrome'],
       buildCommand: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false'],
       assets: [
         {
@@ -26,6 +27,7 @@ describe('buildReleaseManifest', () => {
 
     expect(manifest.upstream.tag).toBe('v13.25.0');
     expect(manifest.builder.tag).toBe('v13.25.0-no-lavamoat');
+    expect(manifest.build.targets).toEqual(['chrome']);
     expect(manifest.assets[0]?.sha256).toBe('abc');
   });
 });

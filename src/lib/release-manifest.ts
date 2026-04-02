@@ -12,6 +12,7 @@ export interface BuildReleaseManifestInput {
   officialChromeZipUrl: string;
   officialChromeZipSha256?: string;
   builderReleaseTag: string;
+  targets: string[];
   buildCommand: string[];
   assets: ReleaseManifestAsset[];
   repository: string;
@@ -38,6 +39,7 @@ export interface ReleaseManifest {
     timestamp: string;
   };
   build: {
+    targets: string[];
     command: string[];
     lavamoat: false;
   };
@@ -64,6 +66,7 @@ export function buildReleaseManifest(input: BuildReleaseManifestInput): ReleaseM
       timestamp: input.timestamp
     },
     build: {
+      targets: input.targets,
       command: input.buildCommand,
       lavamoat: false
     },

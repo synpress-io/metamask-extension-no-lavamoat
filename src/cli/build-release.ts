@@ -1,11 +1,12 @@
-import { stat } from 'node:fs/promises';
+import { stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 import { resolveBuildConfigFromOfficialReleaseZip } from '../lib/config.js';
 import { executeNoLavaMoatBuild } from '../lib/build.js';
-import { DEFAULT_BUILDER_REPOSITORY, toBuilderReleaseTag } from '../lib/contracts.js';
-import { buildGitHubReleasePublishPlan } from '../lib/github-release.js';
+import { DEFAULT_BUILD_TARGET, DEFAULT_BUILDER_REPOSITORY, RELEASE_ARTIFACT_NAMES, toBuilderReleaseTag } from '../lib/contracts.js';
+import { buildGitHubReleasePublishPlan, prepareReleaseArtifactCopies } from '../lib/github-release.js';
 import { buildChecksumsText, buildReleaseManifest, type ReleaseManifestAsset } from '../lib/release-manifest.js';
 import { prepareSourceWorkspace } from '../lib/source.js';
 import { fetchLatestUpstreamRelease, fetchUpstreamReleaseByTag, loadFixtureReleaseRecord } from '../lib/upstream.js';
@@ -78,12 +79,15 @@ async function main() {
       ? await fetchUpstreamReleaseByTag(args.tag)
       : await fetchLatestUpstreamRelease();
   const builderReleaseTag = toBuilderReleaseTag(release.tag);
-  const publishPlan = buildGitHubReleasePublishPlan({
-    upstreamTag: release.tag,
-    assetPaths: []
-  });
 
   if (args.dryRun) {
+    const publishPlan = buildGitHubReleasePublishPlan({
+      upstreamTag: release.tag,
+      artifactPaths: [],
+      checksumsPath: RELEASE_ARTIFACT_NAMES.checksums,
+      manifestPath: RELEASE_ARTIFACT_NAMES.manifest
+    });
+
     console.log(
       JSON.stringify(
         {
@@ -114,14 +118,28 @@ async function main() {
     infuraProjectId: config.infuraProjectId
   });
 
+  const releaseDirectory = join(workspace.rootDir, 'release');
+  const copiedArtifacts = await prepareReleaseArtifactCopies({
+    releaseDirectory,
+    version: release.version,
+    artifactSources: {
+      chrome: artifacts.chromeZipPath,
+      firefox: artifacts.firefoxZipPath
+    }
+  });
+
   const releaseAssets: ReleaseManifestAsset[] = [
     {
-      name: artifacts.chromeZipPath.split('/').pop() as string,
-      path: artifacts.chromeZipPath,
-      sha256: await sha256(artifacts.chromeZipPath),
-      size: (await stat(artifacts.chromeZipPath)).size
+      name: copiedArtifacts.chrome?.split('/').pop() as string,
+      path: copiedArtifacts.chrome as string,
+      sha256: await sha256(copiedArtifacts.chrome as string),
+      size: (await stat(copiedArtifacts.chrome as string)).size
     }
   ];
+
+  const checksums = buildChecksumsText(releaseAssets);
+  const manifestPath = join(releaseDirectory, RELEASE_ARTIFACT_NAMES.manifest);
+  const checksumsPath = join(releaseDirectory, RELEASE_ARTIFACT_NAMES.checksums);
 
   const manifest = buildReleaseManifest({
     upstreamTag: release.tag,
@@ -130,6 +148,7 @@ async function main() {
     officialChromeZipUrl: release.chromeZipUrl,
     officialChromeZipSha256: release.chromeZipSha256,
     builderReleaseTag: toBuilderReleaseTag(release.tag),
+    targets: [DEFAULT_BUILD_TARGET],
     buildCommand: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false'],
     assets: releaseAssets,
     repository: process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
@@ -137,7 +156,15 @@ async function main() {
     timestamp: new Date().toISOString()
   });
 
-  publishPlan.assetPaths = releaseAssets.map((asset) => asset.path);
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  await writeFile(checksumsPath, checksums, 'utf8');
+
+  const publishPlan = buildGitHubReleasePublishPlan({
+    upstreamTag: release.tag,
+    artifactPaths: releaseAssets.map((asset) => asset.path),
+    checksumsPath,
+    manifestPath
+  });
 
   console.log(
     JSON.stringify(
@@ -145,7 +172,7 @@ async function main() {
         upstreamTag: release.tag,
         workspaceRoot: workspace.rootDir,
         configSource: config.source,
-        checksums: buildChecksumsText(releaseAssets),
+        checksums,
         manifest,
         publishPlan
       },
