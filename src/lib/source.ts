@@ -31,6 +31,17 @@ async function extractTarball(tarballPath: string, destinationDirectory: string)
   await execFileAsync('tar', ['-xzf', tarballPath, '-C', destinationDirectory, '--strip-components=1']);
 }
 
+export async function initializeSourceGitMetadata(sourceDir: string, upstreamTag: string): Promise<void> {
+  await execFileAsync('git', ['init'], { cwd: sourceDir });
+  await execFileAsync('git', ['config', 'user.name', 'synpress-builder'], { cwd: sourceDir });
+  await execFileAsync('git', ['config', 'user.email', 'builder@synpress.io'], { cwd: sourceDir });
+  await execFileAsync(
+    'git',
+    ['commit', '--allow-empty', '-m', `Initialize builder workspace for ${upstreamTag}`],
+    { cwd: sourceDir }
+  );
+}
+
 export async function prepareSourceWorkspace(release: UpstreamReleaseRecord): Promise<PreparedSourceWorkspace> {
   const rootDir = await mkdtemp(join(tmpdir(), 'synpress-mm-builder-'));
   const sourceDir = join(rootDir, 'source');
@@ -43,6 +54,7 @@ export async function prepareSourceWorkspace(release: UpstreamReleaseRecord): Pr
   await downloadFile(release.chromeZipUrl, officialChromeReleaseZipPath);
   await downloadFile(release.sourceTarballUrl, sourceTarballPath);
   await extractTarball(sourceTarballPath, sourceDir);
+  await initializeSourceGitMetadata(sourceDir, release.tag);
 
   return {
     rootDir,
