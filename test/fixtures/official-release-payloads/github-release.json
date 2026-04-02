@@ -1,0 +1,16 @@
+{
+  "tag_name": "v13.25.0",
+  "tarball_url": "https://example.test/source.tar.gz",
+  "assets": [
+    {
+      "name": "metamask-chrome-13.25.0.zip",
+      "browser_download_url": "https://example.test/metamask-chrome-13.25.0.zip",
+      "digest": "sha256:chrome123"
+    },
+    {
+      "name": "metamask-firefox-13.25.0.zip",
+      "browser_download_url": "https://example.test/metamask-firefox-13.25.0.zip",
+      "digest": "sha256:firefox123"
+    }
+  ]
+}

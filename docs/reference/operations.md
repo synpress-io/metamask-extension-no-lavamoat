@@ -16,8 +16,8 @@
 ```bash
 pnpm install
 pnpm run typecheck
-pnpm test
 pnpm run build
+pnpm test
 ```
 
 ## Planned Dry-Run Commands
@@ -28,3 +28,20 @@ node dist/cli/build-release.js --dry-run --tag v13.25.0
 ```
 
 These dry runs must not publish artifacts and must print a machine-readable build plan.
+
+## Fixture-Backed No-Network Verification
+
+```bash
+node dist/cli/check-for-upstream-release.js \
+  --dry-run \
+  --tag v13.25.0 \
+  --fixture-release test/fixtures/official-release-payloads/github-release.json \
+  --builder-release-exists false
+
+node dist/cli/build-release.js \
+  --dry-run \
+  --tag v13.25.0 \
+  --fixture-release test/fixtures/official-release-payloads/github-release.json
+```
+
+Use the fixture path when validating local behavior without hitting the GitHub API.

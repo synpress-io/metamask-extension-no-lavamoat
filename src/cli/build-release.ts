@@ -8,11 +8,12 @@ import { DEFAULT_BUILDER_REPOSITORY, toBuilderReleaseTag } from '../lib/contract
 import { buildGitHubReleasePublishPlan } from '../lib/github-release.js';
 import { buildChecksumsText, buildReleaseManifest, type ReleaseManifestAsset } from '../lib/release-manifest.js';
 import { prepareSourceWorkspace } from '../lib/source.js';
-import { fetchLatestUpstreamRelease, fetchUpstreamReleaseByTag } from '../lib/upstream.js';
+import { fetchLatestUpstreamRelease, fetchUpstreamReleaseByTag, loadFixtureReleaseRecord } from '../lib/upstream.js';
 
 interface CliArgs {
   tag?: string;
   dryRun: boolean;
+  fixtureRelease?: string;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -34,6 +35,16 @@ function parseArgs(argv: string[]): CliArgs {
         throw new Error('--tag requires a value');
       }
       args.tag = value;
+      index += 1;
+      continue;
+    }
+
+    if (argument === '--fixture-release') {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error('--fixture-release requires a value');
+      }
+      args.fixtureRelease = value;
       index += 1;
       continue;
     }
@@ -61,17 +72,28 @@ function currentCommit(): string | undefined {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const release = args.tag ? await fetchUpstreamReleaseByTag(args.tag) : await fetchLatestUpstreamRelease();
+  const release = args.fixtureRelease
+    ? await loadFixtureReleaseRecord(args.fixtureRelease)
+    : args.tag
+      ? await fetchUpstreamReleaseByTag(args.tag)
+      : await fetchLatestUpstreamRelease();
+  const builderReleaseTag = toBuilderReleaseTag(release.tag);
+  const publishPlan = buildGitHubReleasePublishPlan({
+    upstreamTag: release.tag,
+    assetPaths: []
+  });
 
   if (args.dryRun) {
     console.log(
       JSON.stringify(
         {
           upstreamTag: release.tag,
+          builderReleaseTag,
           version: release.version,
           sourceTarballUrl: release.sourceTarballUrl,
           chromeZipUrl: release.chromeZipUrl,
-          buildCommand: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false']
+          buildCommand: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false'],
+          publishPlan
         },
         null,
         2
@@ -115,10 +137,7 @@ async function main() {
     timestamp: new Date().toISOString()
   });
 
-  const publishPlan = buildGitHubReleasePublishPlan({
-    upstreamTag: release.tag,
-    assetPaths: releaseAssets.map((asset) => asset.path)
-  });
+  publishPlan.assetPaths = releaseAssets.map((asset) => asset.path);
 
   console.log(
     JSON.stringify(

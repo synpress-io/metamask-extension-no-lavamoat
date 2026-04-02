@@ -1,8 +1,17 @@
-import { resolveReleaseCheckDecision } from '../lib/upstream.js';
+import { toBuilderReleaseTag } from '../lib/contracts.js';
+import { checkGitHubReleaseExists } from '../lib/github-release.js';
+import {
+  fetchLatestUpstreamRelease,
+  fetchUpstreamReleaseByTag,
+  loadFixtureReleaseRecord,
+  resolveReleaseCheckDecision
+} from '../lib/upstream.js';
 
 interface CliArgs {
   tag?: string;
   dryRun: boolean;
+  fixtureRelease?: string;
+  builderReleaseExists?: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -28,6 +37,26 @@ function parseArgs(argv: string[]): CliArgs {
       continue;
     }
 
+    if (argument === '--fixture-release') {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error('--fixture-release requires a value');
+      }
+      args.fixtureRelease = value;
+      index += 1;
+      continue;
+    }
+
+    if (argument === '--builder-release-exists') {
+      const value = argv[index + 1];
+      if (value !== 'true' && value !== 'false') {
+        throw new Error('--builder-release-exists requires true or false');
+      }
+      args.builderReleaseExists = value === 'true';
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${argument}`);
   }
 
@@ -36,7 +65,21 @@ function parseArgs(argv: string[]): CliArgs {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const decision = await resolveReleaseCheckDecision(args.tag);
+  const decision = args.fixtureRelease
+    ? await (async () => {
+        const release = await loadFixtureReleaseRecord(args.fixtureRelease as string);
+        const builderReleaseTag = toBuilderReleaseTag(release.tag);
+        const builderReleaseExists =
+          args.builderReleaseExists ?? (await checkGitHubReleaseExists(builderReleaseTag));
+
+        return {
+          upstreamTag: release.tag,
+          builderReleaseTag,
+          shouldBuild: !builderReleaseExists,
+          builderReleaseExists
+        };
+      })()
+    : await resolveReleaseCheckDecision(args.tag);
 
   console.log(
     JSON.stringify(

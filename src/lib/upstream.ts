@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import {
   DEFAULT_BUILDER_REPOSITORY,
   UPSTREAM_METAMASK_REPOSITORY,
@@ -77,6 +78,11 @@ async function fetchGitHubRelease(url: string, token?: string): Promise<GitHubRe
   }
 
   return (await response.json()) as GitHubReleasePayload;
+}
+
+export async function loadFixtureReleaseRecord(path: string): Promise<UpstreamReleaseRecord> {
+  const payload = JSON.parse(await readFile(path, 'utf8')) as GitHubReleasePayload;
+  return deriveReleaseRecord(payload);
 }
 
 export function deriveReleaseRecord(payload: GitHubReleasePayload): UpstreamReleaseRecord {

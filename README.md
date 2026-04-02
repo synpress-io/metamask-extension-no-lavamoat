@@ -29,8 +29,10 @@ This repository builds and publishes prebuilt MetaMask extension artifacts witho
 ```bash
 pnpm install
 pnpm run typecheck
-pnpm test
 pnpm run build
+pnpm test
 ```
 
-Dry-run entrypoints are documented in [operations.md](/Users/jmucha/repos/ai-projects/metamask-extension-no-lavamoat/docs/reference/operations.md).
+Compiled CLIs are emitted under `dist/cli/`.
+
+Dry-run entrypoints and fixture-backed local verification are documented in [operations.md](/Users/jmucha/repos/ai-projects/metamask-extension-no-lavamoat/docs/reference/operations.md).
