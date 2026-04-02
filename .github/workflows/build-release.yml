@@ -1,0 +1,91 @@
+name: Build Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: MetaMask upstream tag to build
+        required: false
+  repository_dispatch:
+    types:
+      - build-upstream-release
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.1
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI entrypoints
+        run: pnpm run build
+
+      - name: Resolve target tag
+        id: resolve-tag
+        shell: bash
+        run: |
+          TARGET_TAG="${{ github.event.client_payload.upstream_tag }}"
+          if [ -z "$TARGET_TAG" ]; then
+            TARGET_TAG="${{ inputs.upstream_tag }}"
+          fi
+          if [ -z "$TARGET_TAG" ]; then
+            TARGET_TAG=$(node -e "const fs=require('node:fs'); const {execFileSync}=require('node:child_process'); const output=execFileSync('node',['dist/cli/check-for-upstream-release.js'], {encoding:'utf8'}); const data=JSON.parse(output); process.stdout.write(data.upstreamTag);")
+          fi
+          echo "target_tag=$TARGET_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build release artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INFURA_PROJECT_ID: ${{ secrets.INFURA_PROJECT_ID }}
+        run: node dist/cli/build-release.js --tag "${{ steps.resolve-tag.outputs.target_tag }}" > build-output.json
+
+      - name: Materialize release metadata files
+        run: |
+          node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('build-output.json','utf8')); fs.writeFileSync('release-manifest.json', JSON.stringify(data.manifest, null, 2) + '\n'); fs.writeFileSync('SHA256SUMS.txt', data.checksums);"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-release-output
+          path: |
+            build-output.json
+            release-manifest.json
+            SHA256SUMS.txt
+
+      - name: Publish GitHub release when missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          RELEASE_TAG=$(node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('build-output.json','utf8')); process.stdout.write(data.publishPlan.tag);")
+          RELEASE_TITLE=$(node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('build-output.json','utf8')); process.stdout.write(data.publishPlan.title);")
+          RELEASE_NOTES=$(node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('build-output.json','utf8')); process.stdout.write(data.publishPlan.notes);")
+          CHROME_ASSET=$(node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('build-output.json','utf8')); process.stdout.write(data.publishPlan.assetPaths[0]);")
+
+          if gh release view "$RELEASE_TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists."
+            exit 0
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            "$CHROME_ASSET" \
+            "SHA256SUMS.txt" \
+            "release-manifest.json" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "$RELEASE_TITLE" \
+            --notes "$RELEASE_NOTES"

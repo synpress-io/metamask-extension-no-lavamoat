@@ -1,0 +1,53 @@
+name: Monitor Releases
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor-releases:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.1
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI entrypoints
+        run: pnpm run build
+
+      - name: Resolve upstream release status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node dist/cli/check-for-upstream-release.js > release-check.json
+
+      - name: Print release decision
+        run: cat release-check.json
+
+      - name: Request build workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHOULD_BUILD=$(node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('release-check.json','utf8')); process.stdout.write(String(data.shouldBuild));")
+          if [ "$SHOULD_BUILD" != "true" ]; then
+            echo "No new release required."
+            exit 0
+          fi
+
+          UPSTREAM_TAG=$(node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('release-check.json','utf8')); process.stdout.write(data.upstreamTag);")
+          gh workflow run build-release.yml --ref "${GITHUB_REF_NAME}" -f upstream_tag="$UPSTREAM_TAG"
