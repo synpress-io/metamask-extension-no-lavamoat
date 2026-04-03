@@ -1,30 +1,36 @@
 # MetaMask Extension No-LavaMoat Builder
 
-This repository builds and publishes prebuilt MetaMask extension artifacts without LavaMoat for Synpress-controlled automation environments.
+This repository builds and publishes prebuilt MetaMask extension artifacts without LavaMoat for Synpress-controlled browser-wallet automation.
 
-## Purpose
+## What This Repository Does
 
-- Build from official `MetaMask/metamask-extension` source tags.
-- Reproduce a deterministic no-LavaMoat artifact pipeline in Synpress-owned infrastructure.
-- Publish machine-readable provenance alongside every released artifact.
-
-## Safety Boundaries
-
-- These artifacts are for automated testing and controlled development environments only.
-- This repository does not make any safety claim for real funds, real wallets, or mainnet usage.
-- Disabling LavaMoat is an explicit security tradeoff and is only acceptable here because the target use case is browser-wallet automation, not end-user browsing.
-
-## Release Model
-
-- Upstream source of truth: official MetaMask GitHub releases and source tags.
-- Builder release tag format: `vX.Y.Z-no-lavamoat`.
-- Primary output target: Chromium/Chrome.
-- Every published builder release must include:
+- Builds from official `MetaMask/metamask-extension` source tags.
+- Produces deterministic Synpress-owned no-LavaMoat artifacts for Chromium/Chrome.
+- Publishes provenance alongside each release:
   - built artifact ZIPs
   - `SHA256SUMS.txt`
   - `release-manifest.json`
+- Keeps the builder package private. This repository is source-public, not an npm package.
 
-## Local Commands
+## Intended Use
+
+- Automated testing
+- Controlled local development environments
+- CI environments that need a pinned browser-wallet artifact
+
+This repository is not for real funds, real wallets, or ordinary browsing. Disabling LavaMoat is an explicit security tradeoff and is only acceptable here because the target use case is automation under controlled conditions.
+
+## Release Model
+
+- Upstream source of truth: official MetaMask GitHub releases and source tags
+- Builder release tag format: `vX.Y.Z-no-lavamoat`
+- Release automation is driven by GitHub Actions
+- `monitor-releases.yml` checks upstream hourly
+- `build-release.yml` builds and publishes a pinned upstream tag
+
+If config cannot be recovered from the official release payload, the release workflow expects the `INFURA_PROJECT_ID` GitHub Actions secret.
+
+## Local Development
 
 ```bash
 pnpm install
@@ -35,4 +41,14 @@ pnpm test
 
 Compiled CLIs are emitted under `dist/cli/`.
 
-Dry-run entrypoints and fixture-backed local verification are documented in [`docs/reference/operations.md`](docs/reference/operations.md).
+## Documentation
+
+- [Operations](docs/reference/operations.md)
+- [Config Extraction](docs/reference/config-extraction.md)
+- [Release Contract](docs/reference/release-contract.md)
+
+## Licensing
+
+The source code in this repository is licensed under the MIT License. See [LICENSE](LICENSE).
+
+Produced browser extension artifacts are built from official MetaMask source. Those artifacts and any derivative distribution remain subject to the upstream MetaMask license and notice requirements, not just this repository's MIT license.
