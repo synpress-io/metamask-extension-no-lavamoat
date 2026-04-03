@@ -2,10 +2,8 @@ import { toBuilderReleaseTag } from '../lib/contracts.js';
 import { inspectGitHubRelease } from '../lib/github-release.js';
 import {
   buildReleaseCheckDecision,
-  fetchLatestUpstreamRelease,
-  fetchUpstreamReleaseByTag,
   loadFixtureReleaseRecord,
-  resolveReleaseCheckDecision
+  resolveReleaseCheckDecision,
 } from '../lib/upstream.js';
 
 interface CliArgs {
@@ -19,7 +17,7 @@ interface CliArgs {
 
 function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = {
-    dryRun: false
+    dryRun: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -100,14 +98,14 @@ async function main() {
             ? await inspectGitHubRelease(builderReleaseTag)
             : {
                 exists: args.builderReleaseExists ?? true,
-                assetNames: args.builderReleaseAssets ?? []
+                assetNames: args.builderReleaseAssets ?? [],
               };
 
         return buildReleaseCheckDecision({
           release,
           builderReleaseExists: inspection.exists,
           builderReleaseAssetNames: inspection.assetNames,
-          builderReleaseIntegrityValid: args.builderReleaseIntegrityValid
+          builderReleaseIntegrityValid: args.builderReleaseIntegrityValid,
         });
       })()
     : await resolveReleaseCheckDecision(args.tag);
@@ -116,11 +114,11 @@ async function main() {
     JSON.stringify(
       {
         ...decision,
-        dryRun: args.dryRun
+        dryRun: args.dryRun,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 }
 

@@ -14,10 +14,12 @@
 ## Local Verification
 
 ```bash
-pnpm install
-pnpm run typecheck
-pnpm run build
-pnpm test
+corepack enable
+corepack pnpm install
+corepack pnpm run check:ci
+corepack pnpm run typecheck
+corepack pnpm run build
+corepack pnpm test
 ```
 
 ## Planned Dry-Run Commands

@@ -11,18 +11,24 @@ describe('buildReleaseManifest', () => {
       officialChromeZipSha256: 'officialsha',
       builderReleaseTag: 'v13.25.0-no-lavamoat',
       targets: ['chrome'],
-      buildCommand: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false'],
+      buildCommand: [
+        'node',
+        'development/build/index.js',
+        'dist',
+        '--apply-lavamoat=false',
+        '--snow=false',
+      ],
       assets: [
         {
           name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
           path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
           sha256: 'abc',
-          size: 123
-        }
+          size: 123,
+        },
       ],
       repository: 'synpress-io/metamask-extension-no-lavamoat',
       commit: 'deadbeef',
-      timestamp: '2026-04-02T00:00:00.000Z'
+      timestamp: '2026-04-02T00:00:00.000Z',
     });
 
     expect(manifest.upstream.tag).toBe('v13.25.0');

@@ -10,14 +10,14 @@ export const DEFAULT_BUILD_TARGET: BuildTarget = 'chrome';
 
 export const RELEASE_ARTIFACT_NAMES = {
   checksums: 'SHA256SUMS.txt',
-  manifest: 'release-manifest.json'
+  manifest: 'release-manifest.json',
 } as const;
 
 export const RELEASE_MANIFEST_KEYS = {
   upstream: 'upstream',
   builder: 'builder',
   build: 'build',
-  assets: 'assets'
+  assets: 'assets',
 } as const;
 
 export function deriveVersionFromTag(tag: string): string {

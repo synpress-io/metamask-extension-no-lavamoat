@@ -1,12 +1,12 @@
 import { copyFile, mkdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import {
+  type BuildTarget,
   DEFAULT_BUILD_TARGET,
   DEFAULT_BUILDER_REPOSITORY,
   RELEASE_ARTIFACT_NAMES,
-  type BuildTarget,
   toArtifactFileName,
-  toBuilderReleaseTag
+  toBuilderReleaseTag,
 } from './contracts.js';
 import type { ReleaseManifest } from './release-manifest.js';
 
@@ -97,7 +97,11 @@ export interface EnsureGitHubReleaseAssetsResult {
 }
 
 export interface GitHubReleaseMutator {
-  inspectRelease(releaseTag: string, repository: string, token?: string): Promise<GitHubReleaseInspection>;
+  inspectRelease(
+    releaseTag: string,
+    repository: string,
+    token?: string,
+  ): Promise<GitHubReleaseInspection>;
   createRelease(input: EnsureGitHubReleaseAssetsInput): Promise<void>;
   uploadAssets(releaseTag: string, repository: string, assetPaths: string[]): Promise<void>;
 }
@@ -105,7 +109,7 @@ export interface GitHubReleaseMutator {
 function gitHubHeaders(token = process.env.GITHUB_TOKEN): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
-    'User-Agent': 'synpress-metamask-no-lavamoat-builder'
+    'User-Agent': 'synpress-metamask-no-lavamoat-builder',
   };
 
   if (token) {
@@ -118,20 +122,20 @@ function gitHubHeaders(token = process.env.GITHUB_TOKEN): Record<string, string>
 export async function inspectGitHubRelease(
   releaseTag: string,
   repository = process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
-  token?: string
+  token?: string,
 ): Promise<GitHubReleaseInspection> {
   const response = await fetch(
     `${GITHUB_API_BASE_URL}/repos/${repository}/releases/tags/${encodeURIComponent(releaseTag)}`,
     {
-      headers: gitHubHeaders(token)
-    }
+      headers: gitHubHeaders(token),
+    },
   );
 
   if (response.status === 404) {
     return {
       exists: false,
       assets: [],
-      assetNames: []
+      assetNames: [],
     };
   }
 
@@ -150,23 +154,23 @@ export async function inspectGitHubRelease(
             name: asset.name,
             digest: asset.digest,
             apiUrl: asset.url,
-            browserDownloadUrl: asset.browser_download_url
-          }
+            browserDownloadUrl: asset.browser_download_url,
+          },
         ]
-      : []
+      : [],
   );
 
   return {
     exists: true,
     assets,
-    assetNames: assets.map((asset) => asset.name)
+    assetNames: assets.map((asset) => asset.name),
   };
 }
 
 export async function checkGitHubReleaseExists(
   releaseTag: string,
   repository = process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
-  token?: string
+  token?: string,
 ): Promise<boolean> {
   const inspection = await inspectGitHubRelease(releaseTag, repository, token);
   return inspection.exists;
@@ -179,7 +183,7 @@ export interface PrepareReleaseArtifactCopiesInput {
 }
 
 export async function prepareReleaseArtifactCopies(
-  input: PrepareReleaseArtifactCopiesInput
+  input: PrepareReleaseArtifactCopiesInput,
 ): Promise<Partial<Record<BuildTarget, string>>> {
   await mkdir(input.releaseDirectory, { recursive: true });
 
@@ -201,12 +205,12 @@ export async function prepareReleaseArtifactCopies(
 
 export function expectedReleaseAssetNames(
   version: string,
-  targets: BuildTarget[] = [DEFAULT_BUILD_TARGET]
+  targets: BuildTarget[] = [DEFAULT_BUILD_TARGET],
 ): string[] {
   return [
     ...targets.map((target) => toArtifactFileName(target, version)),
     RELEASE_ARTIFACT_NAMES.checksums,
-    RELEASE_ARTIFACT_NAMES.manifest
+    RELEASE_ARTIFACT_NAMES.manifest,
   ];
 }
 
@@ -216,11 +220,14 @@ export function evaluateReleaseCompleteness(input: ReleaseCompletenessInput): Re
 
   return {
     complete: missingAssetNames.length === 0,
-    missingAssetNames
+    missingAssetNames,
   };
 }
 
-export function missingReleaseAssetPaths(assetPaths: string[], existingAssetNames: string[]): string[] {
+export function missingReleaseAssetPaths(
+  assetPaths: string[],
+  existingAssetNames: string[],
+): string[] {
   const existing = new Set(existingAssetNames);
   return assetPaths.filter((assetPath) => !existing.has(basename(assetPath)));
 }
@@ -258,7 +265,7 @@ export function evaluateReleaseIntegrity(input: ReleaseIntegrityInput): ReleaseI
   return {
     complete: missingAssetNames.length === 0 && mismatchedDigestAssetNames.length === 0,
     missingAssetNames,
-    mismatchedDigestAssetNames
+    mismatchedDigestAssetNames,
   };
 }
 
@@ -271,7 +278,7 @@ function parseChecksumsText(contents: string): Map<string, string> {
       .flatMap((line) => {
         const match = /^([a-fA-F0-9]{64})\s{2}(.+)$/.exec(line);
         return match ? [[match[2], match[1].toLowerCase()] as const] : [];
-      })
+      }),
   );
 }
 
@@ -359,20 +366,20 @@ function isReleaseManifest(value: unknown): value is ReleaseManifest {
 
 async function downloadReleaseAsset(
   asset: Pick<GitHubReleaseAsset, 'apiUrl' | 'browserDownloadUrl'>,
-  token?: string
+  token?: string,
 ): Promise<Response> {
   if (asset.apiUrl) {
     return fetch(asset.apiUrl, {
       headers: {
         ...gitHubHeaders(token),
-        Accept: 'application/octet-stream'
-      }
+        Accept: 'application/octet-stream',
+      },
     });
   }
 
   if (asset.browserDownloadUrl) {
     return fetch(asset.browserDownloadUrl, {
-      headers: gitHubHeaders(token)
+      headers: gitHubHeaders(token),
     });
   }
 
@@ -382,26 +389,33 @@ async function downloadReleaseAsset(
 export async function inspectPublishedReleaseIntegrity(
   inspection: GitHubReleaseInspection,
   token?: string,
-  expectation: PublishedReleaseIntegrityExpectation = {}
+  expectation: PublishedReleaseIntegrityExpectation = {},
 ): Promise<PublishedReleaseIntegrity> {
   const assetsByName = new Map(inspection.assets.map((asset) => [asset.name, asset]));
   const manifestAsset = assetsByName.get(RELEASE_ARTIFACT_NAMES.manifest);
   const checksumsAsset = assetsByName.get(RELEASE_ARTIFACT_NAMES.checksums);
 
-  if ((!manifestAsset?.apiUrl && !manifestAsset?.browserDownloadUrl) || (!checksumsAsset?.apiUrl && !checksumsAsset?.browserDownloadUrl)) {
+  if (
+    (!manifestAsset?.apiUrl && !manifestAsset?.browserDownloadUrl) ||
+    (!checksumsAsset?.apiUrl && !checksumsAsset?.browserDownloadUrl)
+  ) {
     return {
       valid: false,
       missingAssetNames: [
-        ...(manifestAsset?.apiUrl || manifestAsset?.browserDownloadUrl ? [] : [RELEASE_ARTIFACT_NAMES.manifest]),
-        ...(checksumsAsset?.apiUrl || checksumsAsset?.browserDownloadUrl ? [] : [RELEASE_ARTIFACT_NAMES.checksums])
+        ...(manifestAsset?.apiUrl || manifestAsset?.browserDownloadUrl
+          ? []
+          : [RELEASE_ARTIFACT_NAMES.manifest]),
+        ...(checksumsAsset?.apiUrl || checksumsAsset?.browserDownloadUrl
+          ? []
+          : [RELEASE_ARTIFACT_NAMES.checksums]),
       ],
-      mismatchedAssetNames: []
+      mismatchedAssetNames: [],
     };
   }
 
   const [manifestResponse, checksumsResponse] = await Promise.all([
     downloadReleaseAsset(manifestAsset, token),
-    downloadReleaseAsset(checksumsAsset, token)
+    downloadReleaseAsset(checksumsAsset, token),
   ]);
 
   if (!manifestResponse.ok || !checksumsResponse.ok) {
@@ -410,8 +424,8 @@ export async function inspectPublishedReleaseIntegrity(
       missingAssetNames: [],
       mismatchedAssetNames: [
         ...(!manifestResponse.ok ? [RELEASE_ARTIFACT_NAMES.manifest] : []),
-        ...(!checksumsResponse.ok ? [RELEASE_ARTIFACT_NAMES.checksums] : [])
-      ]
+        ...(!checksumsResponse.ok ? [RELEASE_ARTIFACT_NAMES.checksums] : []),
+      ],
     };
   }
 
@@ -422,7 +436,7 @@ export async function inspectPublishedReleaseIntegrity(
     return {
       valid: false,
       missingAssetNames: [],
-      mismatchedAssetNames: [RELEASE_ARTIFACT_NAMES.manifest]
+      mismatchedAssetNames: [RELEASE_ARTIFACT_NAMES.manifest],
     };
   }
 
@@ -430,7 +444,7 @@ export async function inspectPublishedReleaseIntegrity(
     return {
       valid: false,
       missingAssetNames: [],
-      mismatchedAssetNames: [RELEASE_ARTIFACT_NAMES.manifest]
+      mismatchedAssetNames: [RELEASE_ARTIFACT_NAMES.manifest],
     };
   }
 
@@ -440,20 +454,26 @@ export async function inspectPublishedReleaseIntegrity(
   const mismatchedAssetNames: string[] = [];
 
   if (
-    (expectation.expectedBuilderReleaseTag && manifest.builder.tag !== expectation.expectedBuilderReleaseTag) ||
-    (expectation.expectedRepository && manifest.builder.repository !== expectation.expectedRepository) ||
-    (expectation.expectedUpstreamTag && manifest.upstream.tag !== expectation.expectedUpstreamTag) ||
-    (expectation.expectedUpstreamVersion && manifest.upstream.version !== expectation.expectedUpstreamVersion) ||
-    (expectation.expectedSourceTarballUrl && manifest.upstream.sourceTarballUrl !== expectation.expectedSourceTarballUrl) ||
+    (expectation.expectedBuilderReleaseTag &&
+      manifest.builder.tag !== expectation.expectedBuilderReleaseTag) ||
+    (expectation.expectedRepository &&
+      manifest.builder.repository !== expectation.expectedRepository) ||
+    (expectation.expectedUpstreamTag &&
+      manifest.upstream.tag !== expectation.expectedUpstreamTag) ||
+    (expectation.expectedUpstreamVersion &&
+      manifest.upstream.version !== expectation.expectedUpstreamVersion) ||
+    (expectation.expectedSourceTarballUrl &&
+      manifest.upstream.sourceTarballUrl !== expectation.expectedSourceTarballUrl) ||
     (expectation.expectedOfficialChromeZipUrl &&
       manifest.upstream.officialAssets.chrome.url !== expectation.expectedOfficialChromeZipUrl) ||
     (expectation.expectedOfficialChromeZipSha256 &&
-      manifest.upstream.officialAssets.chrome.sha256 !== expectation.expectedOfficialChromeZipSha256)
+      manifest.upstream.officialAssets.chrome.sha256 !==
+        expectation.expectedOfficialChromeZipSha256)
   ) {
     return {
       valid: false,
       missingAssetNames: [],
-      mismatchedAssetNames: [RELEASE_ARTIFACT_NAMES.manifest]
+      mismatchedAssetNames: [RELEASE_ARTIFACT_NAMES.manifest],
     };
   }
 
@@ -479,23 +499,23 @@ export async function inspectPublishedReleaseIntegrity(
   return {
     valid: missingAssetNames.length === 0 && mismatchedAssetNames.length === 0,
     missingAssetNames,
-    mismatchedAssetNames: Array.from(new Set(mismatchedAssetNames))
+    mismatchedAssetNames: Array.from(new Set(mismatchedAssetNames)),
   };
 }
 
 async function repairReleaseIfNeeded(
   input: EnsureGitHubReleaseAssetsInput,
   inspection: GitHubReleaseInspection,
-  mutator: GitHubReleaseMutator
+  mutator: GitHubReleaseMutator,
 ): Promise<EnsureGitHubReleaseAssetsResult> {
   const integrity = evaluateReleaseIntegrity({
     expectedAssets: input.assets,
-    actualAssets: inspection.assets
+    actualAssets: inspection.assets,
   });
   const expectedAssetsByName = new Map(input.assets.map((asset) => [basename(asset.path), asset]));
   const missingAssetPaths = [
     ...integrity.missingAssetNames,
-    ...integrity.mismatchedDigestAssetNames
+    ...integrity.mismatchedDigestAssetNames,
   ].flatMap((assetName) => {
     const asset = expectedAssetsByName.get(assetName);
     return asset ? [asset.path] : [];
@@ -508,12 +528,12 @@ async function repairReleaseIfNeeded(
   const finalInspection = await mutator.inspectRelease(input.releaseTag, input.repository);
   const finalIntegrity = evaluateReleaseIntegrity({
     expectedAssets: input.assets,
-    actualAssets: finalInspection.assets
+    actualAssets: finalInspection.assets,
   });
 
   if (!finalInspection.exists || !finalIntegrity.complete) {
     throw new Error(
-      `GitHub release ${input.releaseTag} is incomplete after publish/repair; missing assets: ${finalIntegrity.missingAssetNames.join(', ')}, mismatched assets: ${finalIntegrity.mismatchedDigestAssetNames.join(', ')}`
+      `GitHub release ${input.releaseTag} is incomplete after publish/repair; missing assets: ${finalIntegrity.missingAssetNames.join(', ')}, mismatched assets: ${finalIntegrity.mismatchedDigestAssetNames.join(', ')}`,
     );
   }
 
@@ -521,13 +541,13 @@ async function repairReleaseIfNeeded(
     created: false,
     repaired: missingAssetPaths.length > 0,
     finalAssetNames: finalInspection.assetNames,
-    missingAssetNames: finalIntegrity.missingAssetNames
+    missingAssetNames: finalIntegrity.missingAssetNames,
   };
 }
 
 export async function ensureGitHubReleaseAssets(
   input: EnsureGitHubReleaseAssetsInput,
-  mutator: GitHubReleaseMutator
+  mutator: GitHubReleaseMutator,
 ): Promise<EnsureGitHubReleaseAssetsResult> {
   const initialInspection = await mutator.inspectRelease(input.releaseTag, input.repository);
   if (initialInspection.exists) {
@@ -550,15 +570,17 @@ export async function ensureGitHubReleaseAssets(
 
   return {
     ...repairedResult,
-    created: true
+    created: true,
   };
 }
 
-export function buildGitHubReleasePublishPlan(input: GitHubReleasePublishPlanInput): GitHubReleasePublishPlan {
+export function buildGitHubReleasePublishPlan(
+  input: GitHubReleasePublishPlanInput,
+): GitHubReleasePublishPlan {
   return {
     tag: toBuilderReleaseTag(input.upstreamTag),
     title: `${input.upstreamTag} (No LavaMoat)`,
     notes: `MetaMask ${input.upstreamTag} built without LavaMoat.`,
-    assetPaths: [...input.artifactPaths, input.checksumsPath, input.manifestPath]
+    assetPaths: [...input.artifactPaths, input.checksumsPath, input.manifestPath],
   };
 }

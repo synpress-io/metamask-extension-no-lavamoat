@@ -6,7 +6,7 @@ describe('workflow contracts', () => {
     const workflows = [
       '.github/workflows/monitor-releases.yml',
       '.github/workflows/build-release.yml',
-      '.github/workflows/test.yml'
+      '.github/workflows/test.yml',
     ];
 
     for (const workflow of workflows) {
@@ -26,7 +26,9 @@ describe('workflow contracts', () => {
     expect(buildReleaseWorkflow).toContain('node dist/cli/resolve-upstream-tag.js');
     expect(buildReleaseWorkflow).toContain('node dist/cli/check-for-upstream-release.js --tag');
     expect(buildReleaseWorkflow).toContain("should_build == 'true'");
-    expect(buildReleaseWorkflow).toContain('node dist/cli/publish-release.js --build-output build-output.json');
+    expect(buildReleaseWorkflow).toContain(
+      'node dist/cli/publish-release.js --build-output build-output.json',
+    );
     expect(buildReleaseWorkflow).toContain('concurrency:');
     expect(readFileSync('.github/workflows/test.yml', 'utf8')).toContain('pnpm run typecheck');
   });

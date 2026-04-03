@@ -8,7 +8,7 @@ describe('local cli smoke', () => {
     const stdout = execFileSync(
       'node',
       ['dist/cli/resolve-upstream-tag.js', '--fixture-release', fixturePath],
-      { encoding: 'utf8' }
+      { encoding: 'utf8' },
     );
 
     expect(stdout).toBe('v13.25.0');
@@ -25,9 +25,9 @@ describe('local cli smoke', () => {
         '--fixture-release',
         fixturePath,
         '--builder-release-exists',
-        'false'
+        'false',
       ],
-      { encoding: 'utf8' }
+      { encoding: 'utf8' },
     );
 
     const output = JSON.parse(stdout);
@@ -49,9 +49,9 @@ describe('local cli smoke', () => {
         '--builder-release-exists',
         'true',
         '--builder-release-assets',
-        'metamask-chrome-13.25.0-no-lavamoat.zip'
+        'metamask-chrome-13.25.0-no-lavamoat.zip',
       ],
-      { encoding: 'utf8' }
+      { encoding: 'utf8' },
     );
 
     const output = JSON.parse(stdout);
@@ -76,9 +76,9 @@ describe('local cli smoke', () => {
         '--builder-release-assets',
         'metamask-chrome-13.25.0-no-lavamoat.zip,SHA256SUMS.txt,release-manifest.json',
         '--builder-release-integrity-valid',
-        'false'
+        'false',
       ],
-      { encoding: 'utf8' }
+      { encoding: 'utf8' },
     );
 
     const output = JSON.parse(stdout);
@@ -96,9 +96,9 @@ describe('local cli smoke', () => {
         '--tag',
         'v13.25.0',
         '--fixture-release',
-        fixturePath
+        fixturePath,
       ],
-      { encoding: 'utf8' }
+      { encoding: 'utf8' },
     );
 
     const output = JSON.parse(stdout);
@@ -109,7 +109,7 @@ describe('local cli smoke', () => {
       'development/build/index.js',
       'dist',
       '--apply-lavamoat=false',
-      '--snow=false'
+      '--snow=false',
     ]);
   });
 });

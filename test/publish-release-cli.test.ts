@@ -51,13 +51,13 @@ describe('publish-release cli', () => {
             tag: 'v13.25.0-no-lavamoat',
             title: 'v13.25.0 (No LavaMoat)',
             notes: 'notes',
-            assetPaths: [chromeAssetPath, checksumsPath, manifestPath]
-          }
+            assetPaths: [chromeAssetPath, checksumsPath, manifestPath],
+          },
         },
         null,
-        2
+        2,
       ),
-      'utf8'
+      'utf8',
     );
 
     writeFileSync(
@@ -76,7 +76,7 @@ fi
 echo "unexpected gh invocation: $*" >&2
 exit 1
 `,
-      'utf8'
+      'utf8',
     );
     chmodSync(ghMockPath, 0o755);
 
@@ -85,7 +85,10 @@ exit 1
     const manifestDigest = sha256(manifestContents);
 
     const server = createServer((request, response) => {
-      if (request.url !== '/repos/synpress-io/metamask-extension-no-lavamoat/releases/tags/v13.25.0-no-lavamoat') {
+      if (
+        request.url !==
+        '/repos/synpress-io/metamask-extension-no-lavamoat/releases/tags/v13.25.0-no-lavamoat'
+      ) {
         response.statusCode = 404;
         response.end('not found');
         return;
@@ -105,12 +108,20 @@ exit 1
         JSON.stringify({
           assets: uploaded
             ? [
-                { name: 'metamask-chrome-13.25.0-no-lavamoat.zip', digest: `sha256:${chromeDigest}` },
+                {
+                  name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+                  digest: `sha256:${chromeDigest}`,
+                },
                 { name: 'SHA256SUMS.txt', digest: `sha256:${checksumsDigest}` },
-                { name: 'release-manifest.json', digest: `sha256:${manifestDigest}` }
+                { name: 'release-manifest.json', digest: `sha256:${manifestDigest}` },
               ]
-            : [{ name: 'metamask-chrome-13.25.0-no-lavamoat.zip', digest: `sha256:${chromeDigest}` }]
-        })
+            : [
+                {
+                  name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+                  digest: `sha256:${chromeDigest}`,
+                },
+              ],
+        }),
       );
     });
 
@@ -137,9 +148,9 @@ exit 1
             GH_UPLOAD_FLAG: uploadFlagPath,
             GITHUB_API_BASE_URL: `http://127.0.0.1:${address.port}`,
             GITHUB_REPOSITORY: 'synpress-io/metamask-extension-no-lavamoat',
-            GITHUB_TOKEN: 'test-token'
-          }
-        }
+            GITHUB_TOKEN: 'test-token',
+          },
+        },
       );
 
       const output = JSON.parse(stdout);

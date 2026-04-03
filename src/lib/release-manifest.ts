@@ -55,25 +55,25 @@ export function buildReleaseManifest(input: BuildReleaseManifestInput): ReleaseM
       officialAssets: {
         chrome: {
           url: input.officialChromeZipUrl,
-          sha256: input.officialChromeZipSha256
-        }
-      }
+          sha256: input.officialChromeZipSha256,
+        },
+      },
     },
     builder: {
       tag: input.builderReleaseTag,
       repository: input.repository,
       commit: input.commit,
-      timestamp: input.timestamp
+      timestamp: input.timestamp,
     },
     build: {
       targets: input.targets,
       command: input.buildCommand,
-      lavamoat: false
+      lavamoat: false,
     },
-    assets: input.assets
+    assets: input.assets,
   };
 }
 
 export function buildChecksumsText(assets: ReleaseManifestAsset[]): string {
-  return assets.map((asset) => `${asset.sha256}  ${asset.name}`).join('\n') + '\n';
+  return `${assets.map((asset) => `${asset.sha256}  ${asset.name}`).join('\n')}\n`;
 }

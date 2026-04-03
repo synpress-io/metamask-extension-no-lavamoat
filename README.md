@@ -33,13 +33,17 @@ If config cannot be recovered from the official release payload, the release wor
 ## Local Development
 
 ```bash
-pnpm install
-pnpm run typecheck
-pnpm run build
-pnpm test
+corepack enable
+corepack pnpm install
+corepack pnpm run check:ci
+corepack pnpm run typecheck
+corepack pnpm run build
+corepack pnpm test
 ```
 
 Compiled CLIs are emitted under `dist/cli/`.
+
+For automatic rewrites, use `pnpm run check` or `pnpm run format`.
 
 ## Documentation
 

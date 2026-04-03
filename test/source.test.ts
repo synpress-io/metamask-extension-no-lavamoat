@@ -22,7 +22,7 @@ describe('initializeSourceGitMetadata', () => {
 
     const revision = execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: sourceDir,
-      encoding: 'utf8'
+      encoding: 'utf8',
     }).trim();
 
     expect(revision).toMatch(/^[0-9a-f]{40}$/);

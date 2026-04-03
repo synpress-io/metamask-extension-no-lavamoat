@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AmbiguousConfigError, MissingSecretFallbackError } from '../src/lib/errors.js';
 import { resolveBuildConfig, resolveBuildConfigFromOfficialReleaseZip } from '../src/lib/config.js';
+import { AmbiguousConfigError, MissingSecretFallbackError } from '../src/lib/errors.js';
 
 const temporaryPaths: string[] = [];
 
@@ -18,7 +18,7 @@ describe('resolveBuildConfig', () => {
   it('prefers values extracted from the official release zip', () => {
     const config = resolveBuildConfig({
       extractedReleaseFiles: ["var infuraProjectId = '0123456789abcdef0123456789abcdef';"],
-      secretInfuraProjectId: 'fallback'
+      secretInfuraProjectId: 'fallback',
     });
 
     expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');
@@ -28,7 +28,7 @@ describe('resolveBuildConfig', () => {
   it('falls back to the secret only when extraction fails cleanly', () => {
     const config = resolveBuildConfig({
       extractedReleaseFiles: [],
-      secretInfuraProjectId: 'fallback'
+      secretInfuraProjectId: 'fallback',
     });
 
     expect(config.infuraProjectId).toBe('fallback');
@@ -40,10 +40,10 @@ describe('resolveBuildConfig', () => {
       resolveBuildConfig({
         extractedReleaseFiles: [
           "var infuraProjectId = '0123456789abcdef0123456789abcdef';",
-          "var infuraProjectId = 'fedcba98765432100123456789abcdef';"
+          "var infuraProjectId = 'fedcba98765432100123456789abcdef';",
         ],
-        secretInfuraProjectId: 'fallback'
-      })
+        secretInfuraProjectId: 'fallback',
+      }),
     ).toThrow(AmbiguousConfigError);
   });
 
@@ -51,8 +51,8 @@ describe('resolveBuildConfig', () => {
     expect(() =>
       resolveBuildConfig({
         extractedReleaseFiles: [],
-        secretInfuraProjectId: undefined
-      })
+        secretInfuraProjectId: undefined,
+      }),
     ).toThrow(MissingSecretFallbackError);
   });
 });
@@ -66,16 +66,16 @@ describe('resolveBuildConfigFromOfficialReleaseZip', () => {
     writeFileSync(
       join(workspace, 'background.js'),
       "window.__config = {}; var infuraProjectId = '0123456789abcdef0123456789abcdef';\n",
-      'utf8'
+      'utf8',
     );
 
     execFileSync('zip', ['-q', zipPath, 'background.js'], {
-      cwd: workspace
+      cwd: workspace,
     });
 
     const config = await resolveBuildConfigFromOfficialReleaseZip({
       zipPath,
-      secretInfuraProjectId: 'fallback'
+      secretInfuraProjectId: 'fallback',
     });
 
     expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');

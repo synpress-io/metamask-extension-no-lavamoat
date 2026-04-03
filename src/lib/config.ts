@@ -46,7 +46,7 @@ function isTextEntry(entryName: string): boolean {
 async function readZipTextEntries(zipPath: string): Promise<string[]> {
   const { stdout: listOutput } = await execFileAsync('unzip', ['-Z1', zipPath], {
     encoding: 'utf8',
-    maxBuffer: 10 * 1024 * 1024
+    maxBuffer: 10 * 1024 * 1024,
   });
 
   const entryNames = listOutput
@@ -58,11 +58,11 @@ async function readZipTextEntries(zipPath: string): Promise<string[]> {
     entryNames.map(async (entryName) => {
       const { stdout } = await execFileAsync('unzip', ['-p', zipPath, entryName], {
         encoding: 'utf8',
-        maxBuffer: 10 * 1024 * 1024
+        maxBuffer: 10 * 1024 * 1024,
       });
 
       return stdout;
-    })
+    }),
   );
 
   return contents;
@@ -78,7 +78,7 @@ export function resolveBuildConfig(input: ResolveBuildConfigInput): BuildConfig 
   if (extractedIds.length === 1) {
     return {
       infuraProjectId: extractedIds[0],
-      source: 'official-release'
+      source: 'official-release',
     };
   }
 
@@ -88,16 +88,16 @@ export function resolveBuildConfig(input: ResolveBuildConfigInput): BuildConfig 
 
   return {
     infuraProjectId: input.secretInfuraProjectId,
-    source: 'secret-fallback'
+    source: 'secret-fallback',
   };
 }
 
 export async function resolveBuildConfigFromOfficialReleaseZip(
-  input: ResolveBuildConfigFromZipInput
+  input: ResolveBuildConfigFromZipInput,
 ): Promise<BuildConfig> {
   const extractedReleaseFiles = await readZipTextEntries(input.zipPath);
   return resolveBuildConfig({
     extractedReleaseFiles,
-    secretInfuraProjectId: input.secretInfuraProjectId
+    secretInfuraProjectId: input.secretInfuraProjectId,
   });
 }

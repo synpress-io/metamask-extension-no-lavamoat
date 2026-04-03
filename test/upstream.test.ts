@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MissingChromeAssetError } from '../src/lib/errors.js';
-import { buildReleaseCheckDecision, deriveReleaseRecord, resolveReleaseCheckDecision } from '../src/lib/upstream.js';
+import {
+  buildReleaseCheckDecision,
+  deriveReleaseRecord,
+  resolveReleaseCheckDecision,
+} from '../src/lib/upstream.js';
 
 const originalFetch = globalThis.fetch;
 
@@ -17,14 +21,14 @@ describe('deriveReleaseRecord', () => {
         {
           name: 'metamask-chrome-13.25.0.zip',
           browser_download_url: 'https://example.test/chrome.zip',
-          digest: 'sha256:abc'
+          digest: 'sha256:abc',
         },
         {
           name: 'metamask-firefox-13.25.0.zip',
           browser_download_url: 'https://example.test/firefox.zip',
-          digest: 'sha256:def'
-        }
-      ]
+          digest: 'sha256:def',
+        },
+      ],
     });
 
     expect(record.tag).toBe('v13.25.0');
@@ -41,8 +45,8 @@ describe('deriveReleaseRecord', () => {
       deriveReleaseRecord({
         tag_name: 'v13.25.0',
         tarball_url: 'https://example.test/source.tar.gz',
-        assets: []
-      })
+        assets: [],
+      }),
     ).toThrow(MissingChromeAssetError);
   });
 
@@ -52,10 +56,10 @@ describe('deriveReleaseRecord', () => {
         tag: 'v13.25.0',
         version: '13.25.0',
         sourceTarballUrl: 'https://example.test/source.tar.gz',
-        chromeZipUrl: 'https://example.test/chrome.zip'
+        chromeZipUrl: 'https://example.test/chrome.zip',
       },
       builderReleaseExists: true,
-      builderReleaseAssetNames: ['metamask-chrome-13.25.0-no-lavamoat.zip']
+      builderReleaseAssetNames: ['metamask-chrome-13.25.0-no-lavamoat.zip'],
     });
 
     expect(decision.shouldBuild).toBe(true);
@@ -68,15 +72,15 @@ describe('deriveReleaseRecord', () => {
         tag: 'v13.25.0',
         version: '13.25.0',
         sourceTarballUrl: 'https://example.test/source.tar.gz',
-        chromeZipUrl: 'https://example.test/chrome.zip'
+        chromeZipUrl: 'https://example.test/chrome.zip',
       },
       builderReleaseExists: true,
       builderReleaseAssetNames: [
         'metamask-chrome-13.25.0-no-lavamoat.zip',
         'SHA256SUMS.txt',
-        'release-manifest.json'
+        'release-manifest.json',
       ],
-      builderReleaseIntegrityValid: false
+      builderReleaseIntegrityValid: false,
     });
 
     expect(decision.shouldBuild).toBe(true);
@@ -95,15 +99,17 @@ describe('deriveReleaseRecord', () => {
             assets: [
               {
                 name: 'metamask-chrome-13.25.0.zip',
-                browser_download_url: 'https://example.test/chrome.zip'
-              }
-            ]
+                browser_download_url: 'https://example.test/chrome.zip',
+              },
+            ],
           }),
-          { status: 200 }
-        )
+          { status: 200 },
+        ),
       )
       .mockRejectedValueOnce(new Error('transient GitHub failure')) as typeof fetch;
 
-    await expect(resolveReleaseCheckDecision('v13.25.0')).rejects.toThrow('transient GitHub failure');
+    await expect(resolveReleaseCheckDecision('v13.25.0')).rejects.toThrow(
+      'transient GitHub failure',
+    );
   });
 });

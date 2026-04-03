@@ -8,7 +8,7 @@ describe('buildCommandFor', () => {
       'development/build/index.js',
       'dist',
       '--apply-lavamoat=false',
-      '--snow=false'
+      '--snow=false',
     ]);
   });
 });

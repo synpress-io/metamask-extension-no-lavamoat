@@ -1,15 +1,30 @@
-import { stat, writeFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { resolveBuildConfigFromOfficialReleaseZip } from '../lib/config.js';
 import { executeNoLavaMoatBuild } from '../lib/build.js';
-import { DEFAULT_BUILD_TARGET, DEFAULT_BUILDER_REPOSITORY, RELEASE_ARTIFACT_NAMES, toBuilderReleaseTag } from '../lib/contracts.js';
-import { buildGitHubReleasePublishPlan, prepareReleaseArtifactCopies } from '../lib/github-release.js';
-import { buildChecksumsText, buildReleaseManifest, type ReleaseManifestAsset } from '../lib/release-manifest.js';
+import { resolveBuildConfigFromOfficialReleaseZip } from '../lib/config.js';
+import {
+  DEFAULT_BUILD_TARGET,
+  DEFAULT_BUILDER_REPOSITORY,
+  RELEASE_ARTIFACT_NAMES,
+  toBuilderReleaseTag,
+} from '../lib/contracts.js';
+import {
+  buildGitHubReleasePublishPlan,
+  prepareReleaseArtifactCopies,
+} from '../lib/github-release.js';
+import {
+  buildChecksumsText,
+  buildReleaseManifest,
+  type ReleaseManifestAsset,
+} from '../lib/release-manifest.js';
 import { prepareSourceWorkspace } from '../lib/source.js';
-import { fetchLatestUpstreamRelease, fetchUpstreamReleaseByTag, loadFixtureReleaseRecord } from '../lib/upstream.js';
+import {
+  fetchLatestUpstreamRelease,
+  fetchUpstreamReleaseByTag,
+  loadFixtureReleaseRecord,
+} from '../lib/upstream.js';
 
 interface CliArgs {
   tag?: string;
@@ -19,7 +34,7 @@ interface CliArgs {
 
 function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = {
-    dryRun: false
+    dryRun: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -64,7 +79,7 @@ async function sha256(path: string): Promise<string> {
 function currentCommit(): string | undefined {
   try {
     return execFileSync('git', ['rev-parse', 'HEAD'], {
-      encoding: 'utf8'
+      encoding: 'utf8',
     }).trim();
   } catch {
     return process.env.GITHUB_SHA;
@@ -85,7 +100,7 @@ async function main() {
       upstreamTag: release.tag,
       artifactPaths: [],
       checksumsPath: RELEASE_ARTIFACT_NAMES.checksums,
-      manifestPath: RELEASE_ARTIFACT_NAMES.manifest
+      manifestPath: RELEASE_ARTIFACT_NAMES.manifest,
     });
 
     console.log(
@@ -96,12 +111,18 @@ async function main() {
           version: release.version,
           sourceTarballUrl: release.sourceTarballUrl,
           chromeZipUrl: release.chromeZipUrl,
-          buildCommand: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false'],
-          publishPlan
+          buildCommand: [
+            'node',
+            'development/build/index.js',
+            'dist',
+            '--apply-lavamoat=false',
+            '--snow=false',
+          ],
+          publishPlan,
         },
         null,
-        2
-      )
+        2,
+      ),
     );
     return;
   }
@@ -109,13 +130,13 @@ async function main() {
   const workspace = await prepareSourceWorkspace(release);
   const config = await resolveBuildConfigFromOfficialReleaseZip({
     zipPath: workspace.officialChromeReleaseZipPath,
-    secretInfuraProjectId: process.env.INFURA_PROJECT_ID
+    secretInfuraProjectId: process.env.INFURA_PROJECT_ID,
   });
 
   const artifacts = await executeNoLavaMoatBuild({
     sourceDir: workspace.sourceDir,
     version: release.version,
-    infuraProjectId: config.infuraProjectId
+    infuraProjectId: config.infuraProjectId,
   });
 
   const releaseDirectory = join(workspace.rootDir, 'release');
@@ -124,8 +145,8 @@ async function main() {
     version: release.version,
     artifactSources: {
       chrome: artifacts.chromeZipPath,
-      firefox: artifacts.firefoxZipPath
-    }
+      firefox: artifacts.firefoxZipPath,
+    },
   });
 
   const releaseAssets: ReleaseManifestAsset[] = [
@@ -133,8 +154,8 @@ async function main() {
       name: copiedArtifacts.chrome?.split('/').pop() as string,
       path: copiedArtifacts.chrome as string,
       sha256: await sha256(copiedArtifacts.chrome as string),
-      size: (await stat(copiedArtifacts.chrome as string)).size
-    }
+      size: (await stat(copiedArtifacts.chrome as string)).size,
+    },
   ];
 
   const checksums = buildChecksumsText(releaseAssets);
@@ -149,21 +170,27 @@ async function main() {
     officialChromeZipSha256: release.chromeZipSha256,
     builderReleaseTag: toBuilderReleaseTag(release.tag),
     targets: [DEFAULT_BUILD_TARGET],
-    buildCommand: ['node', 'development/build/index.js', 'dist', '--apply-lavamoat=false', '--snow=false'],
+    buildCommand: [
+      'node',
+      'development/build/index.js',
+      'dist',
+      '--apply-lavamoat=false',
+      '--snow=false',
+    ],
     assets: releaseAssets,
     repository: process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
     commit: currentCommit(),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 
-  await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   await writeFile(checksumsPath, checksums, 'utf8');
 
   const publishPlan = buildGitHubReleasePublishPlan({
     upstreamTag: release.tag,
     artifactPaths: releaseAssets.map((asset) => asset.path),
     checksumsPath,
-    manifestPath
+    manifestPath,
   });
 
   console.log(
@@ -174,11 +201,11 @@ async function main() {
         configSource: config.source,
         checksums,
         manifest,
-        publishPlan
+        publishPlan,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 }
 

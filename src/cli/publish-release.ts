@@ -4,10 +4,10 @@ import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { DEFAULT_BUILDER_REPOSITORY } from '../lib/contracts.js';
 import {
-  ensureGitHubReleaseAssets,
-  inspectGitHubRelease,
   type EnsureGitHubReleaseAssetsInput,
-  type GitHubReleaseMutator
+  ensureGitHubReleaseAssets,
+  type GitHubReleaseMutator,
+  inspectGitHubRelease,
 } from '../lib/github-release.js';
 
 const execFileAsync = promisify(execFile);
@@ -56,8 +56,10 @@ async function loadPublishInput(buildOutputPath: string): Promise<EnsureGitHubRe
   const assets = await Promise.all(
     payload.publishPlan.assetPaths.map(async (assetPath) => ({
       path: assetPath,
-      sha256: createHash('sha256').update(await readFile(assetPath)).digest('hex')
-    }))
+      sha256: createHash('sha256')
+        .update(await readFile(assetPath))
+        .digest('hex'),
+    })),
   );
 
   return {
@@ -65,7 +67,7 @@ async function loadPublishInput(buildOutputPath: string): Promise<EnsureGitHubRe
     releaseTag: payload.publishPlan.tag,
     releaseTitle: payload.publishPlan.title,
     releaseNotes: payload.publishPlan.notes,
-    assets
+    assets,
   };
 }
 
@@ -76,13 +78,17 @@ function ghEnvironment(): NodeJS.ProcessEnv {
 
   return {
     ...process.env,
-    GH_TOKEN: process.env.GITHUB_TOKEN
+    GH_TOKEN: process.env.GITHUB_TOKEN,
   };
 }
 
 const ghMutator: GitHubReleaseMutator = {
   inspectRelease(releaseTag, repository) {
-    return inspectGitHubRelease(releaseTag, repository, process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN);
+    return inspectGitHubRelease(
+      releaseTag,
+      repository,
+      process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN,
+    );
   },
   async createRelease(input) {
     await execFileAsync(
@@ -97,9 +103,9 @@ const ghMutator: GitHubReleaseMutator = {
         '--title',
         input.releaseTitle,
         '--notes',
-        input.releaseNotes
+        input.releaseNotes,
       ],
-      { env: ghEnvironment() }
+      { env: ghEnvironment() },
     );
   },
   async uploadAssets(releaseTag, repository, assetPaths) {
@@ -110,9 +116,9 @@ const ghMutator: GitHubReleaseMutator = {
     await execFileAsync(
       process.env.GH_BIN ?? 'gh',
       ['release', 'upload', releaseTag, ...assetPaths, '--repo', repository, '--clobber'],
-      { env: ghEnvironment() }
+      { env: ghEnvironment() },
     );
-  }
+  },
 };
 
 async function main() {

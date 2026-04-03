@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { mkdtemp, mkdir } from 'node:fs/promises';
+import { mkdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { Readable } from 'node:stream';
@@ -28,27 +28,41 @@ async function downloadFile(url: string, destinationPath: string): Promise<void>
 }
 
 async function extractTarball(tarballPath: string, destinationDirectory: string): Promise<void> {
-  await execFileAsync('tar', ['-xzf', tarballPath, '-C', destinationDirectory, '--strip-components=1']);
+  await execFileAsync('tar', [
+    '-xzf',
+    tarballPath,
+    '-C',
+    destinationDirectory,
+    '--strip-components=1',
+  ]);
 }
 
-export async function initializeSourceGitMetadata(sourceDir: string, upstreamTag: string): Promise<void> {
+export async function initializeSourceGitMetadata(
+  sourceDir: string,
+  upstreamTag: string,
+): Promise<void> {
   await execFileAsync('git', ['init'], { cwd: sourceDir });
   await execFileAsync('git', ['config', 'user.name', 'synpress-builder'], { cwd: sourceDir });
   await execFileAsync('git', ['config', 'user.email', 'builder@synpress.io'], { cwd: sourceDir });
   await execFileAsync(
     'git',
     ['commit', '--allow-empty', '-m', `Initialize builder workspace for ${upstreamTag}`],
-    { cwd: sourceDir }
+    { cwd: sourceDir },
   );
 }
 
-export async function prepareSourceWorkspace(release: UpstreamReleaseRecord): Promise<PreparedSourceWorkspace> {
+export async function prepareSourceWorkspace(
+  release: UpstreamReleaseRecord,
+): Promise<PreparedSourceWorkspace> {
   const rootDir = await mkdtemp(join(tmpdir(), 'synpress-mm-builder-'));
   const sourceDir = join(rootDir, 'source');
 
   await mkdir(sourceDir, { recursive: true });
 
-  const officialChromeReleaseZipPath = join(rootDir, basename(new URL(release.chromeZipUrl).pathname));
+  const officialChromeReleaseZipPath = join(
+    rootDir,
+    basename(new URL(release.chromeZipUrl).pathname),
+  );
   const sourceTarballPath = join(rootDir, `${release.version}.tar.gz`);
 
   await downloadFile(release.chromeZipUrl, officialChromeReleaseZipPath);
@@ -60,6 +74,6 @@ export async function prepareSourceWorkspace(release: UpstreamReleaseRecord): Pr
     rootDir,
     sourceDir,
     officialChromeReleaseZipPath,
-    sourceTarballPath
+    sourceTarballPath,
   };
 }

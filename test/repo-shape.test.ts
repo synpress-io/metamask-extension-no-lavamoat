@@ -9,7 +9,7 @@ describe('repo foundation', () => {
       'docs/reference/config-extraction.md',
       'docs/reference/operations.md',
       'src/lib/contracts.ts',
-      'src/lib/errors.ts'
+      'src/lib/errors.ts',
     ];
 
     for (const relative of required) {
