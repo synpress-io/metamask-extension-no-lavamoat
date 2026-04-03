@@ -34,6 +34,7 @@ describe('workflow contracts', () => {
     expect(buildReleaseWorkflow).toContain('attestations: write');
     expect(buildReleaseWorkflow).toContain('artifact-metadata: write');
     expect(buildReleaseWorkflow).toContain('uses: actions/attest@v4');
+    expect(buildReleaseWorkflow).toContain('uses: actions/upload-artifact@v6');
     expect(buildReleaseWorkflow).toContain(attestationSubjectPathSnippet);
     expect(buildReleaseWorkflow).toContain(
       'node dist/cli/publish-release.js --build-output build-output.json',
