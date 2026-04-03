@@ -35,4 +35,4 @@ pnpm test
 
 Compiled CLIs are emitted under `dist/cli/`.
 
-Dry-run entrypoints and fixture-backed local verification are documented in [operations.md](/Users/jmucha/repos/ai-projects/metamask-extension-no-lavamoat/docs/reference/operations.md).
+Dry-run entrypoints and fixture-backed local verification are documented in [`docs/reference/operations.md`](docs/reference/operations.md).

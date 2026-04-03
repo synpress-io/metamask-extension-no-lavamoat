@@ -18,7 +18,9 @@ describe('workflow contracts', () => {
       expect(contents).toContain('FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true');
     }
 
-    expect(readFileSync('.github/workflows/monitor-releases.yml', 'utf8')).toContain('node dist/cli/check-for-upstream-release.js');
+    const monitorWorkflow = readFileSync('.github/workflows/monitor-releases.yml', 'utf8');
+    expect(monitorWorkflow).toContain("cron: '0 * * * *'");
+    expect(monitorWorkflow).toContain('node dist/cli/check-for-upstream-release.js');
     const buildReleaseWorkflow = readFileSync('.github/workflows/build-release.yml', 'utf8');
     expect(buildReleaseWorkflow).toContain('node dist/cli/build-release.js');
     expect(buildReleaseWorkflow).toContain('node dist/cli/resolve-upstream-tag.js');
