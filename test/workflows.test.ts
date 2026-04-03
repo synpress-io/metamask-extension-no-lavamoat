@@ -11,7 +11,11 @@ describe('workflow contracts', () => {
 
     for (const workflow of workflows) {
       expect(existsSync(workflow), `${workflow} should exist`).toBe(true);
-      expect(readFileSync(workflow, 'utf8')).toContain('pnpm/action-setup@v4');
+      const contents = readFileSync(workflow, 'utf8');
+      expect(contents).toContain('actions/checkout@v6');
+      expect(contents).toContain('pnpm/action-setup@v5');
+      expect(contents).toContain('actions/setup-node@v6');
+      expect(contents).toContain('FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true');
     }
 
     expect(readFileSync('.github/workflows/monitor-releases.yml', 'utf8')).toContain('node dist/cli/check-for-upstream-release.js');
