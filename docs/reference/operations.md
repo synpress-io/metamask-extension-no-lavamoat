@@ -5,6 +5,7 @@
 - `test.yml`: install, typecheck, build, and test this repository.
 - `monitor-releases.yml`: detect the latest official MetaMask release and decide whether a builder release is required.
 - `build-release.yml`: build and optionally publish a builder release for a pinned upstream tag.
+- `build-release.yml`: generate a GitHub provenance attestation for released ZIP artifact(s).
 
 ## Expected Secrets
 
@@ -47,3 +48,10 @@ node dist/cli/build-release.js \
 ```
 
 Use the fixture path when validating local behavior without hitting the GitHub API.
+
+## Verifying a Published Artifact
+
+```bash
+gh attestation verify PATH/TO/metamask-chrome-<version>-no-lavamoat.zip \
+  -R synpress-io/metamask-extension-no-lavamoat
+```

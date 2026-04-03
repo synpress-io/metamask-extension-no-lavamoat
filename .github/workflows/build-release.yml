@@ -18,6 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     concurrency:
       group: build-release-${{ github.event.client_payload.upstream_tag || inputs.upstream_tag || 'latest' }}
       cancel-in-progress: false
@@ -79,9 +82,35 @@ jobs:
         run: node dist/cli/build-release.js --tag "${{ steps.resolve-tag.outputs.target_tag }}" > build-output.json
 
       - name: Materialize release metadata files
+        id: release-assets
         if: steps.release-check.outputs.should_build == 'true'
+        shell: bash
         run: |
-          node -e "const fs=require('node:fs'); const data=JSON.parse(fs.readFileSync('build-output.json','utf8')); const manifestPath=data.publishPlan.assetPaths.find((value)=>value.endsWith('release-manifest.json')); const checksumsPath=data.publishPlan.assetPaths.find((value)=>value.endsWith('SHA256SUMS.txt')); fs.copyFileSync(manifestPath, 'release-manifest.json'); fs.copyFileSync(checksumsPath, 'SHA256SUMS.txt');"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync('build-output.json', 'utf8'));
+          const assetPaths = data.publishPlan.assetPaths;
+          const manifestPath = assetPaths.find((value) => value.endsWith('release-manifest.json'));
+          const checksumsPath = assetPaths.find((value) => value.endsWith('SHA256SUMS.txt'));
+          const zipPaths = assetPaths.filter((value) => value.endsWith('.zip'));
+
+          if (!manifestPath || !checksumsPath || zipPaths.length === 0) {
+            throw new Error('build-output.json did not contain the expected release asset paths');
+          }
+
+          fs.copyFileSync(manifestPath, 'release-manifest.json');
+          fs.copyFileSync(checksumsPath, 'SHA256SUMS.txt');
+
+          const output = process.env.GITHUB_OUTPUT;
+          fs.appendFileSync(output, `attestation_subject_path<<EOF\n${zipPaths.join('\n')}\nEOF\n`);
+          NODE
+
+      - name: Attest release artifacts
+        id: attest-release-assets
+        if: steps.release-check.outputs.should_build == 'true'
+        uses: actions/attest@v4
+        with:
+          subject-path: ${{ steps.release-assets.outputs.attestation_subject_path }}
 
       - name: Upload workflow artifacts
         if: steps.release-check.outputs.should_build == 'true'

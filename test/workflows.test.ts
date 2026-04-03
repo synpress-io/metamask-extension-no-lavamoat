@@ -22,10 +22,19 @@ describe('workflow contracts', () => {
     expect(monitorWorkflow).toContain("cron: '0 * * * *'");
     expect(monitorWorkflow).toContain('node dist/cli/check-for-upstream-release.js');
     const buildReleaseWorkflow = readFileSync('.github/workflows/build-release.yml', 'utf8');
+    const attestationSubjectPathSnippet = [
+      'subject-path: $',
+      '{{ steps.release-assets.outputs.attestation_subject_path }}',
+    ].join('');
     expect(buildReleaseWorkflow).toContain('node dist/cli/build-release.js');
     expect(buildReleaseWorkflow).toContain('node dist/cli/resolve-upstream-tag.js');
     expect(buildReleaseWorkflow).toContain('node dist/cli/check-for-upstream-release.js --tag');
     expect(buildReleaseWorkflow).toContain("should_build == 'true'");
+    expect(buildReleaseWorkflow).toContain('id-token: write');
+    expect(buildReleaseWorkflow).toContain('attestations: write');
+    expect(buildReleaseWorkflow).toContain('artifact-metadata: write');
+    expect(buildReleaseWorkflow).toContain('uses: actions/attest@v4');
+    expect(buildReleaseWorkflow).toContain(attestationSubjectPathSnippet);
     expect(buildReleaseWorkflow).toContain(
       'node dist/cli/publish-release.js --build-output build-output.json',
     );

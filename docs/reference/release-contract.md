@@ -37,4 +37,5 @@
 ## Consumer Expectations
 
 - Synpress should be able to pin a builder release tag and verify artifact checksums without rebuilding MetaMask locally.
+- Consumers should be able to verify released ZIP provenance with GitHub artifact attestations.
 - A builder release must be idempotent for a given upstream tag. Re-running the pipeline must either skip or reproduce the exact same release contract.

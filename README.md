@@ -27,6 +27,7 @@ This repository is not for real funds, real wallets, or ordinary browsing. Disab
 - Release automation is driven by GitHub Actions
 - `monitor-releases.yml` checks upstream hourly
 - `build-release.yml` builds and publishes a pinned upstream tag
+- `build-release.yml` also generates a GitHub artifact attestation for the released ZIP artifact(s)
 
 If config cannot be recovered from the official release payload, the release workflow expects the `INFURA_PROJECT_ID` GitHub Actions secret.
 
@@ -50,6 +51,15 @@ For automatic rewrites, use `pnpm run check` or `pnpm run format`.
 - [Operations](docs/reference/operations.md)
 - [Config Extraction](docs/reference/config-extraction.md)
 - [Release Contract](docs/reference/release-contract.md)
+
+## Verifying Released Artifacts
+
+After downloading a published ZIP, verify its provenance with GitHub CLI:
+
+```bash
+gh attestation verify PATH/TO/metamask-chrome-<version>-no-lavamoat.zip \
+  -R synpress-io/metamask-extension-no-lavamoat
+```
 
 ## Licensing
 
