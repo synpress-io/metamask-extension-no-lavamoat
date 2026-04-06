@@ -25,6 +25,32 @@ describe('resolveBuildConfig', () => {
     expect(config.source).toBe('official-release');
   });
 
+  it('extracts the Infura project id from the current compiled MetaMask fallback expression', () => {
+    const config = resolveBuildConfig({
+      extractedReleaseFiles: [
+        'globalThis.INFURA_PROJECT_ID=a??"0123456789abcdef0123456789abcdef";',
+        'const infuraProjectId=globalThis.INFURA_PROJECT_ID??"0123456789abcdef0123456789abcdef";',
+      ],
+      secretInfuraProjectId: 'fallback',
+    });
+
+    expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');
+    expect(config.source).toBe('official-release');
+  });
+
+  it('does not cross a statement boundary while scanning for compiled fallback expressions', () => {
+    const config = resolveBuildConfig({
+      extractedReleaseFiles: [
+        'globalThis.INFURA_PROJECT_ID=testingConfig.infuraProjectId;const otherConfig=foo??"fedcba98765432100123456789abcdef";',
+        'const infuraProjectId=globalThis.INFURA_PROJECT_ID??"0123456789abcdef0123456789abcdef";',
+      ],
+      secretInfuraProjectId: 'fallback',
+    });
+
+    expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');
+    expect(config.source).toBe('official-release');
+  });
+
   it('falls back to the secret only when extraction fails cleanly', () => {
     const config = resolveBuildConfig({
       extractedReleaseFiles: [],
@@ -65,7 +91,11 @@ describe('resolveBuildConfigFromOfficialReleaseZip', () => {
 
     writeFileSync(
       join(workspace, 'background.js'),
-      "window.__config = {}; var infuraProjectId = '0123456789abcdef0123456789abcdef';\n",
+      [
+        'const testingConfig = {};',
+        'globalThis.INFURA_PROJECT_ID=testingConfig.infuraProjectId??"0123456789abcdef0123456789abcdef";',
+        'const infuraProjectId=globalThis.INFURA_PROJECT_ID??"0123456789abcdef0123456789abcdef";',
+      ].join('\n'),
       'utf8',
     );
 

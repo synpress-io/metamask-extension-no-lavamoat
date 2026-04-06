@@ -6,7 +6,11 @@ const execFileAsync = promisify(execFile);
 
 const TEXT_ENTRY_EXTENSIONS = ['.js', '.json', '.html', '.css', '.txt'] as const;
 const INFURA_PROJECT_ID_FIELD = 'INFURA_PROJECT_ID' as const;
-const INFURA_PROJECT_ID_PATTERN = /infuraProjectId\s*=\s*['"]([a-f0-9]{32})['"]/gi;
+const INFURA_PROJECT_ID_PATTERNS = [
+  /\binfuraProjectId\s*=\s*['"]([a-f0-9]{32})['"]/gi,
+  /\bglobalThis\.INFURA_PROJECT_ID\s*=\s*[^"'`\n;,]*\?\?\s*['"]([a-f0-9]{32})['"]/gi,
+  /\binfuraProjectId\s*=\s*globalThis\.INFURA_PROJECT_ID\s*\?\?\s*['"]([a-f0-9]{32})['"]/gi,
+] as const;
 
 export interface BuildConfig {
   infuraProjectId: string;
@@ -27,12 +31,14 @@ function extractInfuraProjectIds(extractedReleaseFiles: string[]): string[] {
   const matches = new Set<string>();
 
   for (const fileContents of extractedReleaseFiles) {
-    INFURA_PROJECT_ID_PATTERN.lastIndex = 0;
+    for (const pattern of INFURA_PROJECT_ID_PATTERNS) {
+      pattern.lastIndex = 0;
 
-    let match = INFURA_PROJECT_ID_PATTERN.exec(fileContents);
-    while (match) {
-      matches.add(match[1].toLowerCase());
-      match = INFURA_PROJECT_ID_PATTERN.exec(fileContents);
+      let match = pattern.exec(fileContents);
+      while (match) {
+        matches.add(match[1].toLowerCase());
+        match = pattern.exec(fileContents);
+      }
     }
   }
 
