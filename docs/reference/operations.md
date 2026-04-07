@@ -52,6 +52,6 @@ Use the fixture path when validating local behavior without hitting the GitHub A
 ## Verifying a Published Artifact
 
 ```bash
-gh attestation verify PATH/TO/metamask-chrome-<version>-no-lavamoat.zip \
+gh attestation verify PATH/TO/metamask-chrome-<version>-no-lava.zip \
   -R synpress-io/metamask-extension-no-lavamoat
 ```

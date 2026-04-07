@@ -23,7 +23,7 @@ This repository is not for real funds, real wallets, or ordinary browsing. Disab
 ## Release Model
 
 - Upstream source of truth: official MetaMask GitHub releases and source tags
-- Builder release tag format: `vX.Y.Z-no-lavamoat`
+- Builder release tag format: `vX.Y.Z-no-lava`
 - Release automation is driven by GitHub Actions
 - `monitor-releases.yml` checks upstream hourly
 - `build-release.yml` builds and publishes a pinned upstream tag
@@ -57,7 +57,7 @@ For automatic rewrites, use `pnpm run check` or `pnpm run format`.
 After downloading a published ZIP, verify its provenance with GitHub CLI:
 
 ```bash
-gh attestation verify PATH/TO/metamask-chrome-<version>-no-lavamoat.zip \
+gh attestation verify PATH/TO/metamask-chrome-<version>-no-lava.zip \
   -R synpress-io/metamask-extension-no-lavamoat
 ```
 

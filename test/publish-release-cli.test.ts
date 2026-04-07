@@ -29,7 +29,7 @@ describe('publish-release cli', () => {
     const sandbox = mkdtempSync(join(tmpdir(), 'mm-publish-cli-'));
     cleanupPaths.push(sandbox);
 
-    const chromeAssetPath = join(sandbox, 'metamask-chrome-13.25.0-no-lavamoat.zip');
+    const chromeAssetPath = join(sandbox, 'metamask-chrome-13.25.0-no-lava.zip');
     const checksumsPath = join(sandbox, 'SHA256SUMS.txt');
     const manifestPath = join(sandbox, 'release-manifest.json');
     const buildOutputPath = join(sandbox, 'build-output.json');
@@ -48,8 +48,8 @@ describe('publish-release cli', () => {
       JSON.stringify(
         {
           publishPlan: {
-            tag: 'v13.25.0-no-lavamoat',
-            title: 'v13.25.0 (No LavaMoat)',
+            tag: 'v13.25.0-no-lava',
+            title: 'v13.25.0 (No Lava)',
             notes: 'notes',
             assetPaths: [chromeAssetPath, checksumsPath, manifestPath],
           },
@@ -87,7 +87,7 @@ exit 1
     const server = createServer((request, response) => {
       if (
         request.url !==
-        '/repos/synpress-io/metamask-extension-no-lavamoat/releases/tags/v13.25.0-no-lavamoat'
+        '/repos/synpress-io/metamask-extension-no-lavamoat/releases/tags/v13.25.0-no-lava'
       ) {
         response.statusCode = 404;
         response.end('not found');
@@ -109,7 +109,7 @@ exit 1
           assets: uploaded
             ? [
                 {
-                  name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+                  name: 'metamask-chrome-13.25.0-no-lava.zip',
                   digest: `sha256:${chromeDigest}`,
                 },
                 { name: 'SHA256SUMS.txt', digest: `sha256:${checksumsDigest}` },
@@ -117,7 +117,7 @@ exit 1
               ]
             : [
                 {
-                  name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+                  name: 'metamask-chrome-13.25.0-no-lava.zip',
                   digest: `sha256:${chromeDigest}`,
                 },
               ],
@@ -159,7 +159,7 @@ exit 1
       expect(output.missingAssetNames).toEqual([]);
 
       const ghLog = readFileSync(ghLogPath, 'utf8');
-      expect(ghLog).toContain('release upload v13.25.0-no-lavamoat');
+      expect(ghLog).toContain('release upload v13.25.0-no-lava');
       expect(ghLog).toContain(checksumsPath);
       expect(ghLog).toContain(manifestPath);
     } finally {

@@ -9,7 +9,7 @@ describe('buildReleaseManifest', () => {
       sourceTarballUrl: 'https://example.test/source.tar.gz',
       officialChromeZipUrl: 'https://example.test/official-chrome.zip',
       officialChromeZipSha256: 'officialsha',
-      builderReleaseTag: 'v13.25.0-no-lavamoat',
+      builderReleaseTag: 'v13.25.0-no-lava',
       targets: ['chrome'],
       buildCommand: [
         'node',
@@ -20,8 +20,8 @@ describe('buildReleaseManifest', () => {
       ],
       assets: [
         {
-          name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
-          path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+          name: 'metamask-chrome-13.25.0-no-lava.zip',
+          path: '/tmp/metamask-chrome-13.25.0-no-lava.zip',
           sha256: 'abc',
           size: 123,
         },
@@ -32,7 +32,7 @@ describe('buildReleaseManifest', () => {
     });
 
     expect(manifest.upstream.tag).toBe('v13.25.0');
-    expect(manifest.builder.tag).toBe('v13.25.0-no-lavamoat');
+    expect(manifest.builder.tag).toBe('v13.25.0-no-lava');
     expect(manifest.build.targets).toEqual(['chrome']);
     expect(manifest.assets[0]?.sha256).toBe('abc');
   });

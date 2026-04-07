@@ -59,7 +59,7 @@ describe('deriveReleaseRecord', () => {
         chromeZipUrl: 'https://example.test/chrome.zip',
       },
       builderReleaseExists: true,
-      builderReleaseAssetNames: ['metamask-chrome-13.25.0-no-lavamoat.zip'],
+      builderReleaseAssetNames: ['metamask-chrome-13.25.0-no-lava.zip'],
     });
 
     expect(decision.shouldBuild).toBe(true);
@@ -76,7 +76,7 @@ describe('deriveReleaseRecord', () => {
       },
       builderReleaseExists: true,
       builderReleaseAssetNames: [
-        'metamask-chrome-13.25.0-no-lavamoat.zip',
+        'metamask-chrome-13.25.0-no-lava.zip',
         'SHA256SUMS.txt',
         'release-manifest.json',
       ],

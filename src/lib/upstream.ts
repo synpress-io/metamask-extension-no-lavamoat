@@ -70,7 +70,7 @@ function findAsset(
 function gitHubHeaders(token = process.env.GITHUB_TOKEN): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
-    'User-Agent': 'synpress-metamask-no-lavamoat-builder',
+    'User-Agent': 'synpress-metamask-no-lava-builder',
   };
 
   if (token) {

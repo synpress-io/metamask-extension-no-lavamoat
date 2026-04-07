@@ -3,13 +3,13 @@
 ## Tag Naming
 
 - Upstream MetaMask tags are consumed as published, for example `v13.25.0`.
-- Builder releases append a single fixed suffix: `-no-lavamoat`.
-- Example builder release tag: `v13.25.0-no-lavamoat`.
+- Builder releases append a single fixed suffix: `-no-lava`.
+- Example builder release tag: `v13.25.0-no-lava`.
 
 ## Asset Naming
 
-- Chrome artifact: `metamask-chrome-<version>-no-lavamoat.zip`
-- Firefox artifact, when enabled: `metamask-firefox-<version>-no-lavamoat.zip`
+- Chrome artifact: `metamask-chrome-<version>-no-lava.zip`
+- Firefox artifact, when enabled: `metamask-firefox-<version>-no-lava.zip`
 - Checksums file: `SHA256SUMS.txt`
 - Manifest file: `release-manifest.json`
 

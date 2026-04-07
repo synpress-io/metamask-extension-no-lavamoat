@@ -1,4 +1,4 @@
-export const BUILDER_RELEASE_SUFFIX = '-no-lavamoat' as const;
+export const BUILDER_RELEASE_SUFFIX = '-no-lava' as const;
 export const DEFAULT_BUILDER_REPOSITORY = 'synpress-io/metamask-extension-no-lavamoat' as const;
 export const UPSTREAM_METAMASK_REPOSITORY = 'MetaMask/metamask-extension' as const;
 

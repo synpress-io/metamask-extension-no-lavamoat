@@ -21,15 +21,15 @@ describe('buildGitHubReleasePublishPlan', () => {
   it('creates the builder release tag and upload asset list', () => {
     const plan = buildGitHubReleasePublishPlan({
       upstreamTag: 'v13.25.0',
-      artifactPaths: ['/tmp/metamask-chrome-13.25.0-no-lavamoat.zip'],
+      artifactPaths: ['/tmp/metamask-chrome-13.25.0-no-lava.zip'],
       checksumsPath: '/tmp/SHA256SUMS.txt',
       manifestPath: '/tmp/release-manifest.json',
     });
 
-    expect(plan.tag).toBe('v13.25.0-no-lavamoat');
-    expect(plan.title).toBe('v13.25.0 (No LavaMoat)');
+    expect(plan.tag).toBe('v13.25.0-no-lava');
+    expect(plan.title).toBe('v13.25.0 (No Lava)');
     expect(plan.assetPaths).toEqual([
-      '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+      '/tmp/metamask-chrome-13.25.0-no-lava.zip',
       '/tmp/SHA256SUMS.txt',
       '/tmp/release-manifest.json',
     ]);
@@ -51,7 +51,7 @@ describe('buildGitHubReleasePublishPlan', () => {
         },
       });
 
-      expect(copied.chrome).toBe(join(releaseDir, 'metamask-chrome-13.25.0-no-lavamoat.zip'));
+      expect(copied.chrome).toBe(join(releaseDir, 'metamask-chrome-13.25.0-no-lava.zip'));
       expect(existsSync(copied.chrome as string)).toBe(true);
     } finally {
       rmSync(sourceDir, { force: true, recursive: true });
@@ -62,11 +62,11 @@ describe('buildGitHubReleasePublishPlan', () => {
   it('detects incomplete releases when required assets are missing', () => {
     const evaluation = evaluateReleaseCompleteness({
       expectedAssetNames: [
-        'metamask-chrome-13.25.0-no-lavamoat.zip',
+        'metamask-chrome-13.25.0-no-lava.zip',
         'SHA256SUMS.txt',
         'release-manifest.json',
       ],
-      actualAssetNames: ['metamask-chrome-13.25.0-no-lavamoat.zip'],
+      actualAssetNames: ['metamask-chrome-13.25.0-no-lava.zip'],
     });
 
     expect(evaluation.complete).toBe(false);
@@ -76,11 +76,11 @@ describe('buildGitHubReleasePublishPlan', () => {
   it('derives missing release asset paths from inspected asset names', () => {
     const missingPaths = missingReleaseAssetPaths(
       [
-        '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+        '/tmp/metamask-chrome-13.25.0-no-lava.zip',
         '/tmp/SHA256SUMS.txt',
         '/tmp/release-manifest.json',
       ],
-      ['metamask-chrome-13.25.0-no-lavamoat.zip'],
+      ['metamask-chrome-13.25.0-no-lava.zip'],
     );
 
     expect(missingPaths).toEqual(['/tmp/SHA256SUMS.txt', '/tmp/release-manifest.json']);
@@ -92,17 +92,17 @@ describe('buildGitHubReleasePublishPlan', () => {
         exists: true,
         assets: [
           {
-            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            name: 'metamask-chrome-13.25.0-no-lava.zip',
             digest: 'sha256:zip-digest',
           },
         ],
-        assetNames: ['metamask-chrome-13.25.0-no-lavamoat.zip'],
+        assetNames: ['metamask-chrome-13.25.0-no-lava.zip'],
       },
       {
         exists: true,
         assets: [
           {
-            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            name: 'metamask-chrome-13.25.0-no-lava.zip',
             digest: 'sha256:zip-digest',
           },
           {
@@ -115,7 +115,7 @@ describe('buildGitHubReleasePublishPlan', () => {
           },
         ],
         assetNames: [
-          'metamask-chrome-13.25.0-no-lavamoat.zip',
+          'metamask-chrome-13.25.0-no-lava.zip',
           'SHA256SUMS.txt',
           'release-manifest.json',
         ],
@@ -126,12 +126,12 @@ describe('buildGitHubReleasePublishPlan', () => {
     const result = await ensureGitHubReleaseAssets(
       {
         repository: 'synpress-io/metamask-extension-no-lavamoat',
-        releaseTag: 'v13.25.0-no-lavamoat',
-        releaseTitle: 'v13.25.0 (No LavaMoat)',
+        releaseTag: 'v13.25.0-no-lava',
+        releaseTitle: 'v13.25.0 (No Lava)',
         releaseNotes: 'notes',
         assets: [
           {
-            path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+            path: '/tmp/metamask-chrome-13.25.0-no-lava.zip',
             sha256: 'zip-digest',
           },
           {
@@ -178,17 +178,17 @@ describe('buildGitHubReleasePublishPlan', () => {
         exists: true,
         assets: [
           {
-            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            name: 'metamask-chrome-13.25.0-no-lava.zip',
             digest: 'sha256:zip-digest',
           },
         ],
-        assetNames: ['metamask-chrome-13.25.0-no-lavamoat.zip'],
+        assetNames: ['metamask-chrome-13.25.0-no-lava.zip'],
       },
       {
         exists: true,
         assets: [
           {
-            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            name: 'metamask-chrome-13.25.0-no-lava.zip',
             digest: 'sha256:zip-digest',
           },
           {
@@ -201,7 +201,7 @@ describe('buildGitHubReleasePublishPlan', () => {
           },
         ],
         assetNames: [
-          'metamask-chrome-13.25.0-no-lavamoat.zip',
+          'metamask-chrome-13.25.0-no-lava.zip',
           'SHA256SUMS.txt',
           'release-manifest.json',
         ],
@@ -212,12 +212,12 @@ describe('buildGitHubReleasePublishPlan', () => {
     const result = await ensureGitHubReleaseAssets(
       {
         repository: 'synpress-io/metamask-extension-no-lavamoat',
-        releaseTag: 'v13.25.0-no-lavamoat',
-        releaseTitle: 'v13.25.0 (No LavaMoat)',
+        releaseTag: 'v13.25.0-no-lava',
+        releaseTitle: 'v13.25.0 (No Lava)',
         releaseNotes: 'notes',
         assets: [
           {
-            path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+            path: '/tmp/metamask-chrome-13.25.0-no-lava.zip',
             sha256: 'zip-digest',
           },
           {
@@ -259,7 +259,7 @@ describe('buildGitHubReleasePublishPlan', () => {
         exists: true,
         assets: [
           {
-            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            name: 'metamask-chrome-13.25.0-no-lava.zip',
             digest: 'sha256:stale-digest',
           },
           {
@@ -272,7 +272,7 @@ describe('buildGitHubReleasePublishPlan', () => {
           },
         ],
         assetNames: [
-          'metamask-chrome-13.25.0-no-lavamoat.zip',
+          'metamask-chrome-13.25.0-no-lava.zip',
           'SHA256SUMS.txt',
           'release-manifest.json',
         ],
@@ -281,7 +281,7 @@ describe('buildGitHubReleasePublishPlan', () => {
         exists: true,
         assets: [
           {
-            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            name: 'metamask-chrome-13.25.0-no-lava.zip',
             digest: 'sha256:zip-digest',
           },
           {
@@ -294,7 +294,7 @@ describe('buildGitHubReleasePublishPlan', () => {
           },
         ],
         assetNames: [
-          'metamask-chrome-13.25.0-no-lavamoat.zip',
+          'metamask-chrome-13.25.0-no-lava.zip',
           'SHA256SUMS.txt',
           'release-manifest.json',
         ],
@@ -305,12 +305,12 @@ describe('buildGitHubReleasePublishPlan', () => {
     const result = await ensureGitHubReleaseAssets(
       {
         repository: 'synpress-io/metamask-extension-no-lavamoat',
-        releaseTag: 'v13.25.0-no-lavamoat',
-        releaseTitle: 'v13.25.0 (No LavaMoat)',
+        releaseTag: 'v13.25.0-no-lava',
+        releaseTitle: 'v13.25.0 (No Lava)',
         releaseNotes: 'notes',
         assets: [
           {
-            path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+            path: '/tmp/metamask-chrome-13.25.0-no-lava.zip',
             sha256: 'zip-digest',
           },
           {
@@ -340,7 +340,7 @@ describe('buildGitHubReleasePublishPlan', () => {
       },
     );
 
-    expect(uploadCalls).toEqual([['/tmp/metamask-chrome-13.25.0-no-lavamoat.zip']]);
+    expect(uploadCalls).toEqual([['/tmp/metamask-chrome-13.25.0-no-lava.zip']]);
     expect(result.created).toBe(false);
     expect(result.repaired).toBe(true);
     expect(result.missingAssetNames).toEqual([]);
@@ -367,7 +367,7 @@ describe('buildGitHubReleasePublishPlan', () => {
               },
             },
             builder: {
-              tag: 'v13.25.0-no-lavamoat',
+              tag: 'v13.25.0-no-lava',
               repository: 'synpress-io/metamask-extension-no-lavamoat',
               timestamp: '2026-04-02T00:00:00.000Z',
             },
@@ -384,8 +384,8 @@ describe('buildGitHubReleasePublishPlan', () => {
             },
             assets: [
               {
-                name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
-                path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+                name: 'metamask-chrome-13.25.0-no-lava.zip',
+                path: '/tmp/metamask-chrome-13.25.0-no-lava.zip',
                 sha256: expectedDigest,
                 size: 123,
               },
@@ -396,7 +396,7 @@ describe('buildGitHubReleasePublishPlan', () => {
       }
 
       if (url.endsWith('/SHA256SUMS.txt')) {
-        return new Response(`${expectedDigest}  metamask-chrome-13.25.0-no-lavamoat.zip\n`, {
+        return new Response(`${expectedDigest}  metamask-chrome-13.25.0-no-lava.zip\n`, {
           status: 200,
         });
       }
@@ -408,7 +408,7 @@ describe('buildGitHubReleasePublishPlan', () => {
       exists: true,
       assets: [
         {
-          name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+          name: 'metamask-chrome-13.25.0-no-lava.zip',
           digest: `sha256:${wrongDigest}`,
         },
         {
@@ -421,14 +421,14 @@ describe('buildGitHubReleasePublishPlan', () => {
         },
       ],
       assetNames: [
-        'metamask-chrome-13.25.0-no-lavamoat.zip',
+        'metamask-chrome-13.25.0-no-lava.zip',
         'release-manifest.json',
         'SHA256SUMS.txt',
       ],
     });
 
     expect(integrity.valid).toBe(false);
-    expect(integrity.mismatchedAssetNames).toEqual(['metamask-chrome-13.25.0-no-lavamoat.zip']);
+    expect(integrity.mismatchedAssetNames).toEqual(['metamask-chrome-13.25.0-no-lava.zip']);
   });
 
   it('marks a published release invalid when the manifest is malformed or empty', async () => {
@@ -452,7 +452,7 @@ describe('buildGitHubReleasePublishPlan', () => {
       exists: true,
       assets: [
         {
-          name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+          name: 'metamask-chrome-13.25.0-no-lava.zip',
           digest: `sha256:${wrongDigest}`,
         },
         {
@@ -465,7 +465,7 @@ describe('buildGitHubReleasePublishPlan', () => {
         },
       ],
       assetNames: [
-        'metamask-chrome-13.25.0-no-lavamoat.zip',
+        'metamask-chrome-13.25.0-no-lava.zip',
         'release-manifest.json',
         'SHA256SUMS.txt',
       ],
@@ -497,7 +497,7 @@ describe('buildGitHubReleasePublishPlan', () => {
               },
             },
             builder: {
-              tag: 'v13.24.0-no-lavamoat',
+              tag: 'v13.24.0-no-lava',
               repository: 'some-other/repo',
               timestamp: '2026-04-02T00:00:00.000Z',
             },
@@ -514,8 +514,8 @@ describe('buildGitHubReleasePublishPlan', () => {
             },
             assets: [
               {
-                name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
-                path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+                name: 'metamask-chrome-13.25.0-no-lava.zip',
+                path: '/tmp/metamask-chrome-13.25.0-no-lava.zip',
                 sha256: digest,
                 size: 123,
               },
@@ -526,7 +526,7 @@ describe('buildGitHubReleasePublishPlan', () => {
       }
 
       if (url.endsWith('/SHA256SUMS.txt')) {
-        return new Response(`${digest}  metamask-chrome-13.25.0-no-lavamoat.zip\n`, {
+        return new Response(`${digest}  metamask-chrome-13.25.0-no-lava.zip\n`, {
           status: 200,
         });
       }
@@ -539,7 +539,7 @@ describe('buildGitHubReleasePublishPlan', () => {
         exists: true,
         assets: [
           {
-            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            name: 'metamask-chrome-13.25.0-no-lava.zip',
             digest: `sha256:${digest}`,
           },
           {
@@ -552,14 +552,14 @@ describe('buildGitHubReleasePublishPlan', () => {
           },
         ],
         assetNames: [
-          'metamask-chrome-13.25.0-no-lavamoat.zip',
+          'metamask-chrome-13.25.0-no-lava.zip',
           'release-manifest.json',
           'SHA256SUMS.txt',
         ],
       },
       undefined,
       {
-        expectedBuilderReleaseTag: 'v13.25.0-no-lavamoat',
+        expectedBuilderReleaseTag: 'v13.25.0-no-lava',
         expectedRepository: 'synpress-io/metamask-extension-no-lavamoat',
         expectedUpstreamTag: 'v13.25.0',
         expectedUpstreamVersion: '13.25.0',
@@ -594,7 +594,7 @@ describe('buildGitHubReleasePublishPlan', () => {
               },
             },
             builder: {
-              tag: 'v13.25.0-no-lavamoat',
+              tag: 'v13.25.0-no-lava',
               repository: 'synpress-io/metamask-extension-no-lavamoat',
               timestamp: '2026-04-02T00:00:00.000Z',
             },
@@ -611,8 +611,8 @@ describe('buildGitHubReleasePublishPlan', () => {
             },
             assets: [
               {
-                name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
-                path: '/tmp/metamask-chrome-13.25.0-no-lavamoat.zip',
+                name: 'metamask-chrome-13.25.0-no-lava.zip',
+                path: '/tmp/metamask-chrome-13.25.0-no-lava.zip',
                 sha256: digest,
                 size: 123,
               },
@@ -623,7 +623,7 @@ describe('buildGitHubReleasePublishPlan', () => {
       }
 
       if (url === 'https://api.example.test/assets/checksums') {
-        return new Response(`${digest}  metamask-chrome-13.25.0-no-lavamoat.zip\n`, {
+        return new Response(`${digest}  metamask-chrome-13.25.0-no-lava.zip\n`, {
           status: 200,
         });
       }
@@ -640,7 +640,7 @@ describe('buildGitHubReleasePublishPlan', () => {
         exists: true,
         assets: [
           {
-            name: 'metamask-chrome-13.25.0-no-lavamoat.zip',
+            name: 'metamask-chrome-13.25.0-no-lava.zip',
             digest: `sha256:${digest}`,
           },
           {
@@ -655,14 +655,14 @@ describe('buildGitHubReleasePublishPlan', () => {
           },
         ],
         assetNames: [
-          'metamask-chrome-13.25.0-no-lavamoat.zip',
+          'metamask-chrome-13.25.0-no-lava.zip',
           'release-manifest.json',
           'SHA256SUMS.txt',
         ],
       },
       undefined,
       {
-        expectedBuilderReleaseTag: 'v13.25.0-no-lavamoat',
+        expectedBuilderReleaseTag: 'v13.25.0-no-lava',
         expectedRepository: 'synpress-io/metamask-extension-no-lavamoat',
         expectedUpstreamTag: 'v13.25.0',
         expectedUpstreamVersion: '13.25.0',

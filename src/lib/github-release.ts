@@ -109,7 +109,7 @@ export interface GitHubReleaseMutator {
 function gitHubHeaders(token = process.env.GITHUB_TOKEN): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
-    'User-Agent': 'synpress-metamask-no-lavamoat-builder',
+    'User-Agent': 'synpress-metamask-no-lava-builder',
   };
 
   if (token) {
@@ -579,7 +579,7 @@ export function buildGitHubReleasePublishPlan(
 ): GitHubReleasePublishPlan {
   return {
     tag: toBuilderReleaseTag(input.upstreamTag),
-    title: `${input.upstreamTag} (No LavaMoat)`,
+    title: `${input.upstreamTag} (No Lava)`,
     notes: `MetaMask ${input.upstreamTag} built without LavaMoat.`,
     assetPaths: [...input.artifactPaths, input.checksumsPath, input.manifestPath],
   };

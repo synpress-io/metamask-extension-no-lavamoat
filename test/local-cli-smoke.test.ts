@@ -32,7 +32,7 @@ describe('local cli smoke', () => {
 
     const output = JSON.parse(stdout);
     expect(output.upstreamTag).toBe('v13.25.0');
-    expect(output.builderReleaseTag).toBe('v13.25.0-no-lavamoat');
+    expect(output.builderReleaseTag).toBe('v13.25.0-no-lava');
     expect(output.shouldBuild).toBe(true);
   });
 
@@ -49,7 +49,7 @@ describe('local cli smoke', () => {
         '--builder-release-exists',
         'true',
         '--builder-release-assets',
-        'metamask-chrome-13.25.0-no-lavamoat.zip',
+        'metamask-chrome-13.25.0-no-lava.zip',
       ],
       { encoding: 'utf8' },
     );
@@ -74,7 +74,7 @@ describe('local cli smoke', () => {
         '--builder-release-exists',
         'true',
         '--builder-release-assets',
-        'metamask-chrome-13.25.0-no-lavamoat.zip,SHA256SUMS.txt,release-manifest.json',
+        'metamask-chrome-13.25.0-no-lava.zip,SHA256SUMS.txt,release-manifest.json',
         '--builder-release-integrity-valid',
         'false',
       ],
@@ -103,7 +103,7 @@ describe('local cli smoke', () => {
 
     const output = JSON.parse(stdout);
     expect(output.upstreamTag).toBe('v13.25.0');
-    expect(output.builderReleaseTag).toBe('v13.25.0-no-lavamoat');
+    expect(output.builderReleaseTag).toBe('v13.25.0-no-lava');
     expect(output.buildCommand).toEqual([
       'node',
       'development/build/index.js',
