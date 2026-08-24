@@ -374,8 +374,8 @@ describe('buildGitHubReleasePublishPlan', () => {
             build: {
               targets: ['chrome'],
               command: [
-                'yarn',
-                'webpack',
+                'node',
+                'development/.webpack/launch.js',
                 '--no-cache',
                 '--mode',
                 'production',
@@ -509,8 +509,8 @@ describe('buildGitHubReleasePublishPlan', () => {
             build: {
               targets: ['chrome'],
               command: [
-                'yarn',
-                'webpack',
+                'node',
+                'development/.webpack/launch.js',
                 '--no-cache',
                 '--mode',
                 'production',
@@ -611,8 +611,8 @@ describe('buildGitHubReleasePublishPlan', () => {
             build: {
               targets: ['chrome'],
               command: [
-                'yarn',
-                'webpack',
+                'node',
+                'development/.webpack/launch.js',
                 '--no-cache',
                 '--mode',
                 'production',

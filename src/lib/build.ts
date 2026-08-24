@@ -19,15 +19,20 @@ export interface ExecuteBuildOptions {
 }
 
 // MetaMask >= v13.42.0 builds with webpack only (the gulp entrypoint
-// `development/build/index.js` was removed). LavaMoat and Snow default to
-// enabled in production mode, so both must be disabled explicitly.
-// `--no-cache` keeps the build in-process: with caching on, launch.ts forks a
-// detached child whose failures are not propagated to the parent's exit code,
-// and the cache never helps on single-use CI workspaces.
+// `development/build/index.js` was removed). Upstream production CI first
+// compiles the build system with `yarn webpack:tsc` and then runs the compiled
+// launcher directly — the tsx-based `yarn webpack` path cannot load TypeScript
+// loaders inside thread-loader workers. LavaMoat and Snow default to enabled
+// in production mode, so both must be disabled explicitly. `--no-cache` keeps
+// the build in-process: with caching on, the launcher forks a detached child
+// whose failures are not propagated to the parent's exit code, and the cache
+// never helps on single-use CI workspaces.
+export const BUILD_SYSTEM_COMPILE_COMMAND = ['yarn', 'webpack:tsc'] as const;
+
 export function buildCommandFor(targets: BuildTarget[]): string[] {
   return [
-    'yarn',
-    'webpack',
+    'node',
+    'development/.webpack/launch.js',
     '--no-cache',
     '--mode',
     'production',
@@ -38,14 +43,20 @@ export function buildCommandFor(targets: BuildTarget[]): string[] {
   ];
 }
 
-// Mirrors the heap sizing that upstream's launch.ts applies to its forked
-// build process; the in-process (`--no-cache`) path skips that tuning.
+// The environment for the MetaMask build process itself. The extension's
+// config precedence is process.env over .metamaskrc, so INFURA_PROJECT_ID must
+// not leak in from the environment: the Infura project id extracted from the
+// official release zip is delivered exclusively through .metamaskrc, which
+// guarantees built artifacts carry MetaMask's own key. Heap sizing mirrors
+// what upstream's launcher applies to its forked build process; the in-process
+// (`--no-cache`) path skips that tuning.
 export function buildEnvironment(baseEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const { INFURA_PROJECT_ID: _excludedInfuraProjectId, ...environment } = baseEnv;
   const maxOldSpaceMb = Math.floor((totalmem() * 0.75) / (1 << 20));
-  const nodeOptions = [baseEnv.NODE_OPTIONS, `--max-old-space-size=${maxOldSpaceMb}`]
+  const nodeOptions = [environment.NODE_OPTIONS, `--max-old-space-size=${maxOldSpaceMb}`]
     .filter(Boolean)
     .join(' ');
-  return { ...baseEnv, NODE_OPTIONS: nodeOptions };
+  return { ...environment, NODE_OPTIONS: nodeOptions };
 }
 
 export function renderMetamaskRc(infuraProjectId: string): string {
@@ -101,6 +112,9 @@ export async function executeNoLavaMoatBuild(
 
   await runCommand('corepack', ['enable'], options.sourceDir);
   await runCommand('yarn', ['install', '--immutable'], options.sourceDir);
+
+  const [compileExecutable, ...compileArguments] = BUILD_SYSTEM_COMPILE_COMMAND;
+  await runCommand(compileExecutable, [...compileArguments], options.sourceDir);
 
   const [buildExecutable, ...buildArguments] = buildCommandFor(targets);
   await runCommand(
