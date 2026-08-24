@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { executeNoLavaMoatBuild } from '../lib/build.js';
+import { buildCommandFor, executeNoLavaMoatBuild } from '../lib/build.js';
 import { resolveBuildConfigFromOfficialReleaseZip } from '../lib/config.js';
 import {
   DEFAULT_BUILD_TARGET,
@@ -111,13 +111,7 @@ async function main() {
           version: release.version,
           sourceTarballUrl: release.sourceTarballUrl,
           chromeZipUrl: release.chromeZipUrl,
-          buildCommand: [
-            'node',
-            'development/build/index.js',
-            'dist',
-            '--apply-lavamoat=false',
-            '--snow=false',
-          ],
+          buildCommand: buildCommandFor([DEFAULT_BUILD_TARGET]),
           publishPlan,
         },
         null,
@@ -170,13 +164,7 @@ async function main() {
     officialChromeZipSha256: release.chromeZipSha256,
     builderReleaseTag: toBuilderReleaseTag(release.tag),
     targets: [DEFAULT_BUILD_TARGET],
-    buildCommand: [
-      'node',
-      'development/build/index.js',
-      'dist',
-      '--apply-lavamoat=false',
-      '--snow=false',
-    ],
+    buildCommand: buildCommandFor([DEFAULT_BUILD_TARGET]),
     assets: releaseAssets,
     repository: process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
     commit: currentCommit(),
