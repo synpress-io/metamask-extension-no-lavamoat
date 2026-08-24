@@ -52,8 +52,6 @@ describe('buildEnvironment', () => {
   it('appends heap sizing to existing NODE_OPTIONS', () => {
     const environment = buildEnvironment({ NODE_OPTIONS: '--enable-source-maps' });
 
-    expect(environment.NODE_OPTIONS).toMatch(
-      /^--enable-source-maps --max-old-space-size=\d+$/,
-    );
+    expect(environment.NODE_OPTIONS).toMatch(/^--enable-source-maps --max-old-space-size=\d+$/);
   });
 });
