@@ -376,6 +376,7 @@ describe('buildGitHubReleasePublishPlan', () => {
               command: [
                 'yarn',
                 'webpack',
+                '--no-cache',
                 '--mode',
                 'production',
                 '--no-lavamoat',
@@ -510,6 +511,7 @@ describe('buildGitHubReleasePublishPlan', () => {
               command: [
                 'yarn',
                 'webpack',
+                '--no-cache',
                 '--mode',
                 'production',
                 '--no-lavamoat',
@@ -611,6 +613,7 @@ describe('buildGitHubReleasePublishPlan', () => {
               command: [
                 'yarn',
                 'webpack',
+                '--no-cache',
                 '--mode',
                 'production',
                 '--no-lavamoat',

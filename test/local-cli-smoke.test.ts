@@ -107,6 +107,7 @@ describe('local cli smoke', () => {
     expect(output.buildCommand).toEqual([
       'yarn',
       'webpack',
+      '--no-cache',
       '--mode',
       'production',
       '--no-lavamoat',
