@@ -8,10 +8,6 @@ import { MissingBuiltArtifactError } from './errors.js';
 
 const execFileAsync = promisify(execFile);
 
-export interface BuildCommandOptions {
-  buildTarget: 'dist';
-}
-
 export interface BuildArtifacts {
   chromeZipPath: string;
   firefoxZipPath?: string;
@@ -24,13 +20,19 @@ export interface ExecuteBuildOptions {
   targets?: BuildTarget[];
 }
 
-export function buildCommandFor({ buildTarget }: BuildCommandOptions): string[] {
+// MetaMask >= v13.42.0 builds with webpack only (the gulp entrypoint
+// `development/build/index.js` was removed). LavaMoat and Snow default to
+// enabled in production mode, so both must be disabled explicitly.
+export function buildCommandFor(targets: BuildTarget[]): string[] {
   return [
-    'node',
-    'development/build/index.js',
-    buildTarget,
-    '--apply-lavamoat=false',
-    '--snow=false',
+    'yarn',
+    'webpack',
+    '--mode',
+    'production',
+    '--no-lavamoat',
+    '--no-snow',
+    '--zip',
+    ...targets.flatMap((target) => ['--browser', target]),
   ];
 }
 
@@ -67,11 +69,9 @@ export async function executeNoLavaMoatBuild(
 
   await runCommand('corepack', ['enable'], options.sourceDir);
   await runCommand('yarn', ['install', '--immutable'], options.sourceDir);
-  await runCommand(
-    buildCommandFor({ buildTarget: 'dist' }).at(0) as string,
-    buildCommandFor({ buildTarget: 'dist' }).slice(1),
-    options.sourceDir,
-  );
+
+  const [buildExecutable, ...buildArguments] = buildCommandFor(targets);
+  await runCommand(buildExecutable as string, buildArguments, options.sourceDir);
 
   const buildsDirectory = join(options.sourceDir, 'builds');
   const chromeZipPath = join(buildsDirectory, `metamask-chrome-${options.version}.zip`);

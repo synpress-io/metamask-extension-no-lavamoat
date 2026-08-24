@@ -12,11 +12,15 @@ describe('buildReleaseManifest', () => {
       builderReleaseTag: 'v13.25.0-no-lava',
       targets: ['chrome'],
       buildCommand: [
-        'node',
-        'development/build/index.js',
-        'dist',
-        '--apply-lavamoat=false',
-        '--snow=false',
+        'yarn',
+        'webpack',
+        '--mode',
+        'production',
+        '--no-lavamoat',
+        '--no-snow',
+        '--zip',
+        '--browser',
+        'chrome',
       ],
       assets: [
         {

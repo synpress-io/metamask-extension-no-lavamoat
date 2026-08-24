@@ -105,11 +105,15 @@ describe('local cli smoke', () => {
     expect(output.upstreamTag).toBe('v13.25.0');
     expect(output.builderReleaseTag).toBe('v13.25.0-no-lava');
     expect(output.buildCommand).toEqual([
-      'node',
-      'development/build/index.js',
-      'dist',
-      '--apply-lavamoat=false',
-      '--snow=false',
+      'yarn',
+      'webpack',
+      '--mode',
+      'production',
+      '--no-lavamoat',
+      '--no-snow',
+      '--zip',
+      '--browser',
+      'chrome',
     ]);
   });
 });
