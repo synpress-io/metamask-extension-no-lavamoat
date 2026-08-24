@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { AmbiguousConfigError, MissingSecretFallbackError } from './errors.js';
+import { AmbiguousConfigError, MissingExtractedConfigError } from './errors.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -14,17 +14,15 @@ const INFURA_PROJECT_ID_PATTERNS = [
 
 export interface BuildConfig {
   infuraProjectId: string;
-  source: 'official-release' | 'secret-fallback';
+  source: 'official-release';
 }
 
 export interface ResolveBuildConfigInput {
   extractedReleaseFiles: string[];
-  secretInfuraProjectId?: string;
 }
 
 export interface ResolveBuildConfigFromZipInput {
   zipPath: string;
-  secretInfuraProjectId?: string;
 }
 
 function extractInfuraProjectIds(extractedReleaseFiles: string[]): string[] {
@@ -74,6 +72,9 @@ async function readZipTextEntries(zipPath: string): Promise<string[]> {
   return contents;
 }
 
+// Every published build must carry MetaMask's own Infura project id, so the
+// only accepted source is the official release zip: anything other than
+// exactly one extracted id fails the build instead of falling back.
 export function resolveBuildConfig(input: ResolveBuildConfigInput): BuildConfig {
   const extractedIds = extractInfuraProjectIds(input.extractedReleaseFiles);
 
@@ -81,20 +82,13 @@ export function resolveBuildConfig(input: ResolveBuildConfigInput): BuildConfig 
     throw new AmbiguousConfigError(INFURA_PROJECT_ID_FIELD);
   }
 
-  if (extractedIds.length === 1) {
-    return {
-      infuraProjectId: extractedIds[0],
-      source: 'official-release',
-    };
-  }
-
-  if (!input.secretInfuraProjectId) {
-    throw new MissingSecretFallbackError(INFURA_PROJECT_ID_FIELD);
+  if (extractedIds.length === 0) {
+    throw new MissingExtractedConfigError(INFURA_PROJECT_ID_FIELD);
   }
 
   return {
-    infuraProjectId: input.secretInfuraProjectId,
-    source: 'secret-fallback',
+    infuraProjectId: extractedIds[0],
+    source: 'official-release',
   };
 }
 
@@ -102,8 +96,5 @@ export async function resolveBuildConfigFromOfficialReleaseZip(
   input: ResolveBuildConfigFromZipInput,
 ): Promise<BuildConfig> {
   const extractedReleaseFiles = await readZipTextEntries(input.zipPath);
-  return resolveBuildConfig({
-    extractedReleaseFiles,
-    secretInfuraProjectId: input.secretInfuraProjectId,
-  });
+  return resolveBuildConfig({ extractedReleaseFiles });
 }

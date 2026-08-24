@@ -105,8 +105,8 @@ describe('local cli smoke', () => {
     expect(output.upstreamTag).toBe('v13.25.0');
     expect(output.builderReleaseTag).toBe('v13.25.0-no-lava');
     expect(output.buildCommand).toEqual([
-      'yarn',
-      'webpack',
+      'node',
+      'development/.webpack/launch.js',
       '--no-cache',
       '--mode',
       'production',

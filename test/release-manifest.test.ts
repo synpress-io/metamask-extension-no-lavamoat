@@ -12,8 +12,8 @@ describe('buildReleaseManifest', () => {
       builderReleaseTag: 'v13.25.0-no-lava',
       targets: ['chrome'],
       buildCommand: [
-        'yarn',
-        'webpack',
+        'node',
+        'development/.webpack/launch.js',
         '--no-cache',
         '--mode',
         'production',

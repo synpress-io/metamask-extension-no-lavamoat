@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { resolveBuildConfig, resolveBuildConfigFromOfficialReleaseZip } from '../src/lib/config.js';
-import { AmbiguousConfigError, MissingSecretFallbackError } from '../src/lib/errors.js';
+import { AmbiguousConfigError, MissingExtractedConfigError } from '../src/lib/errors.js';
 
 const temporaryPaths: string[] = [];
 
@@ -15,10 +15,9 @@ afterEach(() => {
 });
 
 describe('resolveBuildConfig', () => {
-  it('prefers values extracted from the official release zip', () => {
+  it('extracts the Infura project id from an assignment expression', () => {
     const config = resolveBuildConfig({
       extractedReleaseFiles: ["var infuraProjectId = '0123456789abcdef0123456789abcdef';"],
-      secretInfuraProjectId: 'fallback',
     });
 
     expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');
@@ -31,7 +30,20 @@ describe('resolveBuildConfig', () => {
         'globalThis.INFURA_PROJECT_ID=a??"0123456789abcdef0123456789abcdef";',
         'const infuraProjectId=globalThis.INFURA_PROJECT_ID??"0123456789abcdef0123456789abcdef";',
       ],
-      secretInfuraProjectId: 'fallback',
+    });
+
+    expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');
+    expect(config.source).toBe('official-release');
+  });
+
+  it('extracts the Infura project id from verbatim webpack-built official bundles (v13.42.0+)', () => {
+    // Minified statements captured from the official metamask-chrome-13.45.0.zip,
+    // with the project id replaced by a placeholder of identical shape.
+    const config = resolveBuildConfig({
+      extractedReleaseFiles: [
+        ';var e=__webpack_require__(108120);let t=(0,e.P)().testing?.infuraProjectId;globalThis.INFURA_PROJECT_ID=t??"0123456789abcdef0123456789abcdef"}}).call(__webpack_exports__)',
+        'let U=globalThis.INFURA_PROJECT_ID??"0123456789abcdef0123456789abcdef";let G=({network:e,excludeProjectId:t=!1})=>{}',
+      ],
     });
 
     expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');
@@ -44,21 +56,10 @@ describe('resolveBuildConfig', () => {
         'globalThis.INFURA_PROJECT_ID=testingConfig.infuraProjectId;const otherConfig=foo??"fedcba98765432100123456789abcdef";',
         'const infuraProjectId=globalThis.INFURA_PROJECT_ID??"0123456789abcdef0123456789abcdef";',
       ],
-      secretInfuraProjectId: 'fallback',
     });
 
     expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');
     expect(config.source).toBe('official-release');
-  });
-
-  it('falls back to the secret only when extraction fails cleanly', () => {
-    const config = resolveBuildConfig({
-      extractedReleaseFiles: [],
-      secretInfuraProjectId: 'fallback',
-    });
-
-    expect(config.infuraProjectId).toBe('fallback');
-    expect(config.source).toBe('secret-fallback');
   });
 
   it('throws when multiple candidate values are present', () => {
@@ -68,18 +69,16 @@ describe('resolveBuildConfig', () => {
           "var infuraProjectId = '0123456789abcdef0123456789abcdef';",
           "var infuraProjectId = 'fedcba98765432100123456789abcdef';",
         ],
-        secretInfuraProjectId: 'fallback',
       }),
     ).toThrow(AmbiguousConfigError);
   });
 
-  it('throws when there is no extracted value and no fallback secret', () => {
+  it('throws when no value can be extracted from the official release', () => {
     expect(() =>
       resolveBuildConfig({
         extractedReleaseFiles: [],
-        secretInfuraProjectId: undefined,
       }),
-    ).toThrow(MissingSecretFallbackError);
+    ).toThrow(MissingExtractedConfigError);
   });
 });
 
@@ -103,10 +102,7 @@ describe('resolveBuildConfigFromOfficialReleaseZip', () => {
       cwd: workspace,
     });
 
-    const config = await resolveBuildConfigFromOfficialReleaseZip({
-      zipPath,
-      secretInfuraProjectId: 'fallback',
-    });
+    const config = await resolveBuildConfigFromOfficialReleaseZip({ zipPath });
 
     expect(config.infuraProjectId).toBe('0123456789abcdef0123456789abcdef');
     expect(config.source).toBe('official-release');

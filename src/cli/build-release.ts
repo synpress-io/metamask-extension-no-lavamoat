@@ -124,7 +124,6 @@ async function main() {
   const workspace = await prepareSourceWorkspace(release);
   const config = await resolveBuildConfigFromOfficialReleaseZip({
     zipPath: workspace.officialChromeReleaseZipPath,
-    secretInfuraProjectId: process.env.INFURA_PROJECT_ID,
   });
 
   const artifacts = await executeNoLavaMoatBuild({

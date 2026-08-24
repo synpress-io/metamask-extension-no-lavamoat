@@ -78,7 +78,6 @@ jobs:
         if: steps.release-check.outputs.should_build == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INFURA_PROJECT_ID: ${{ secrets.INFURA_PROJECT_ID }}
         run: node dist/cli/build-release.js --tag "${{ steps.resolve-tag.outputs.target_tag }}" > build-output.json
 
       - name: Materialize release metadata files

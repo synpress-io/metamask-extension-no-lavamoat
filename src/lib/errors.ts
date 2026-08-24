@@ -26,11 +26,11 @@ export class AmbiguousConfigError extends BuilderError {
   }
 }
 
-export class MissingSecretFallbackError extends BuilderError {
+export class MissingExtractedConfigError extends BuilderError {
   constructor(fieldName: string) {
     super(
-      `No extracted value or secret fallback was provided for ${fieldName}`,
-      'MISSING_SECRET_FALLBACK',
+      `Could not extract required config field ${fieldName} from the official release zip`,
+      'MISSING_EXTRACTED_CONFIG',
     );
   }
 }
