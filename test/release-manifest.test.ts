@@ -14,6 +14,7 @@ describe('buildReleaseManifest', () => {
       buildCommand: [
         'yarn',
         'webpack',
+        '--no-cache',
         '--mode',
         'production',
         '--no-lavamoat',

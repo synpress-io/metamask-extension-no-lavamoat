@@ -6,6 +6,7 @@ describe('buildCommandFor', () => {
     expect(buildCommandFor(['chrome'])).toEqual([
       'yarn',
       'webpack',
+      '--no-cache',
       '--mode',
       'production',
       '--no-lavamoat',
@@ -20,6 +21,7 @@ describe('buildCommandFor', () => {
     expect(buildCommandFor(['chrome', 'firefox'])).toEqual([
       'yarn',
       'webpack',
+      '--no-cache',
       '--mode',
       'production',
       '--no-lavamoat',
