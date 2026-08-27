@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { type BlockedUpstreamTag, findBlockedUpstreamTag } from './blocked-upstream-tags.js';
 import {
   DEFAULT_BUILDER_REPOSITORY,
   deriveVersionFromTag,
@@ -45,6 +46,7 @@ export interface ReleaseCheckDecision {
   builderReleaseComplete: boolean;
   builderReleaseIntegrityValid: boolean;
   missingBuilderAssets: string[];
+  blockedReason?: string;
 }
 
 function normalizeDigest(digest?: string): string | undefined {
@@ -146,6 +148,7 @@ export interface BuildReleaseCheckDecisionInput {
   builderReleaseExists: boolean;
   builderReleaseAssetNames: string[];
   builderReleaseIntegrityValid?: boolean;
+  blockedTags?: BlockedUpstreamTag[];
 }
 
 export function buildReleaseCheckDecision(
@@ -156,14 +159,19 @@ export function buildReleaseCheckDecision(
     expectedAssetNames: expectedReleaseAssetNames(input.release.version),
     actualAssetNames: input.builderReleaseAssetNames,
   });
+  // A blocked tag cannot currently produce a publishable artifact. Deciding that
+  // here keeps the hourly monitor green instead of failing the same build every
+  // hour, and the reason travels with the decision.
+  const blocked = findBlockedUpstreamTag(input.release.tag, input.blockedTags);
 
   return {
     upstreamTag: input.release.tag,
     builderReleaseTag,
     shouldBuild:
-      !input.builderReleaseExists ||
-      !completeness.complete ||
-      input.builderReleaseIntegrityValid === false,
+      !blocked &&
+      (!input.builderReleaseExists ||
+        !completeness.complete ||
+        input.builderReleaseIntegrityValid === false),
     builderReleaseExists: input.builderReleaseExists,
     builderReleaseComplete: input.builderReleaseExists && completeness.complete,
     builderReleaseIntegrityValid: input.builderReleaseExists
@@ -172,6 +180,7 @@ export function buildReleaseCheckDecision(
     missingBuilderAssets: input.builderReleaseExists
       ? completeness.missingAssetNames
       : expectedReleaseAssetNames(input.release.version),
+    ...(blocked ? { blockedReason: `${blocked.reason} (${blocked.issueUrl})` } : {}),
   };
 }
 

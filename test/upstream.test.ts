@@ -88,6 +88,54 @@ describe('deriveReleaseRecord', () => {
     expect(decision.builderReleaseIntegrityValid).toBe(false);
   });
 
+  it('skips a blocked upstream tag instead of retrying a build that cannot succeed', () => {
+    const decision = buildReleaseCheckDecision({
+      release: {
+        tag: 'v13.25.0',
+        version: '13.25.0',
+        sourceTarballUrl: 'https://example.test/source.tar.gz',
+        chromeZipUrl: 'https://example.test/chrome.zip',
+      },
+      builderReleaseExists: false,
+      builderReleaseAssetNames: [],
+      blockedTags: [
+        {
+          tag: 'v13.25.0',
+          reason: 'upstream build drops a service worker chunk',
+          issueUrl: 'https://example.test/issues/1',
+        },
+      ],
+    });
+
+    expect(decision.shouldBuild).toBe(false);
+    expect(decision.blockedReason).toBe(
+      'upstream build drops a service worker chunk (https://example.test/issues/1)',
+    );
+  });
+
+  it('still builds a tag that is not on the blocked list', () => {
+    const decision = buildReleaseCheckDecision({
+      release: {
+        tag: 'v13.25.0',
+        version: '13.25.0',
+        sourceTarballUrl: 'https://example.test/source.tar.gz',
+        chromeZipUrl: 'https://example.test/chrome.zip',
+      },
+      builderReleaseExists: false,
+      builderReleaseAssetNames: [],
+      blockedTags: [
+        {
+          tag: 'v13.24.0',
+          reason: 'unrelated',
+          issueUrl: 'https://example.test/issues/2',
+        },
+      ],
+    });
+
+    expect(decision.shouldBuild).toBe(true);
+    expect(decision.blockedReason).toBeUndefined();
+  });
+
   it('fails closed when builder release inspection errors', async () => {
     globalThis.fetch = vi
       .fn()

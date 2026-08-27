@@ -177,6 +177,7 @@ async function main() {
     targets: [DEFAULT_BUILD_TARGET],
     buildCommand: buildCommandFor([DEFAULT_BUILD_TARGET]),
     assets: releaseAssets,
+    dependencyPatches: artifacts.dependencyPatches,
     repository: process.env.GITHUB_REPOSITORY ?? DEFAULT_BUILDER_REPOSITORY,
     commit: currentCommit(),
     timestamp: new Date().toISOString(),

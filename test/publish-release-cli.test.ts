@@ -1,6 +1,14 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -14,11 +22,13 @@ function sha256(content: Buffer | string): string {
 }
 
 /**
- * The publish CLI verifies service-worker chunk completeness on the exact bytes
- * it uploads, so the Chrome asset has to be a real, complete extension zip.
+ * The publish CLI verifies chunk completeness on the exact bytes it uploads, so
+ * the Chrome asset has to be a real extension zip. `includeChunk: false` builds
+ * the artifact shape that shipped as v13.45.0-no-lava.
  */
-function writeExtensionZip(sandbox: string, zipPath: string): void {
+function writeExtensionZip(sandbox: string, zipPath: string, includeChunk = true): void {
   const stagingDirectory = join(sandbox, 'extension');
+  rmSync(stagingDirectory, { force: true, recursive: true });
   mkdirSync(stagingDirectory, { recursive: true });
 
   writeFileSync(
@@ -35,11 +45,13 @@ function writeExtensionZip(sandbox: string, zipPath: string): void {
     'r.u=e=>""+e+"."+({283:"a2e2948b20a4688231c5"})[e]+".js";r.e(283);',
     'utf8',
   );
-  writeFileSync(
-    join(stagingDirectory, '283.a2e2948b20a4688231c5.js'),
-    '(globalThis.webpackChunk??=[]).push([[283],{}]);\n',
-    'utf8',
-  );
+  if (includeChunk) {
+    writeFileSync(
+      join(stagingDirectory, '283.a2e2948b20a4688231c5.js'),
+      '(globalThis.webpackChunk??=[]).push([[283],{}]);\n',
+      'utf8',
+    );
+  }
 
   execFileSync('zip', ['-qr', zipPath, '.'], { cwd: stagingDirectory });
 }
@@ -192,6 +204,12 @@ exit 1
           artifactName: 'metamask-chrome-13.25.0-no-lava.zip',
           serviceWorkerEntryName: 'service-worker.js',
           complete: true,
+          runtimes: [
+            {
+              entryName: 'service-worker.js',
+              referencedChunkNames: ['283.a2e2948b20a4688231c5.js'],
+            },
+          ],
           referencedChunkNames: ['283.a2e2948b20a4688231c5.js'],
           missingChunkNames: [],
         },
@@ -212,5 +230,101 @@ exit 1
         });
       });
     }
+  });
+
+  it('refuses to publish an artifact missing a chunk, before touching gh', async () => {
+    const sandbox = mkdtempSync(join(tmpdir(), 'mm-publish-cli-'));
+    cleanupPaths.push(sandbox);
+
+    const chromeAssetPath = join(sandbox, 'metamask-chrome-13.25.0-no-lava.zip');
+    const buildOutputPath = join(sandbox, 'build-output.json');
+    const ghLogPath = join(sandbox, 'gh.log');
+    const ghMockPath = join(sandbox, 'gh');
+
+    writeExtensionZip(sandbox, chromeAssetPath, false);
+    writeFileSync(
+      buildOutputPath,
+      JSON.stringify({
+        publishPlan: {
+          tag: 'v13.25.0-no-lava',
+          title: 'v13.25.0 (No Lava)',
+          notes: 'notes',
+          assetPaths: [chromeAssetPath],
+        },
+      }),
+      'utf8',
+    );
+    writeFileSync(
+      ghMockPath,
+      `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "$GH_LOG_PATH"\nexit 0\n`,
+      'utf8',
+    );
+    chmodSync(ghMockPath, 0o755);
+
+    await expect(
+      execFileAsync('node', ['dist/cli/publish-release.js', '--build-output', buildOutputPath], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          GH_BIN: ghMockPath,
+          GH_LOG_PATH: ghLogPath,
+          GITHUB_REPOSITORY: 'synpress-io/metamask-extension-no-lavamoat',
+          GITHUB_TOKEN: 'test-token',
+        },
+      }),
+    ).rejects.toThrow(/283\.a2e2948b20a4688231c5\.js/);
+
+    // The gate must run before any release mutation: gh is never invoked, so the
+    // mock never creates its log.
+    expect(existsSync(ghLogPath)).toBe(false);
+  });
+
+  it('refuses to publish a release that carries no inspectable artifact', async () => {
+    const sandbox = mkdtempSync(join(tmpdir(), 'mm-publish-cli-'));
+    cleanupPaths.push(sandbox);
+
+    const notesPath = join(sandbox, 'release-manifest.json');
+    const buildOutputPath = join(sandbox, 'build-output.json');
+    const ghLogPath = join(sandbox, 'gh.log');
+    const ghMockPath = join(sandbox, 'gh');
+
+    writeFileSync(notesPath, '{"ok":true}\n', 'utf8');
+    writeFileSync(
+      buildOutputPath,
+      JSON.stringify({
+        publishPlan: {
+          tag: 'v13.25.0-no-lava',
+          title: 'v13.25.0 (No Lava)',
+          notes: 'notes',
+          assetPaths: [notesPath],
+        },
+      }),
+      'utf8',
+    );
+    writeFileSync(
+      ghMockPath,
+      `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "$GH_LOG_PATH"\nexit 0\n`,
+      'utf8',
+    );
+    chmodSync(ghMockPath, 0o755);
+
+    // Without this the gate silently becomes a no-op the moment the Chrome asset
+    // stops matching the shape it filters on.
+    await expect(
+      execFileAsync('node', ['dist/cli/publish-release.js', '--build-output', buildOutputPath], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          GH_BIN: ghMockPath,
+          GH_LOG_PATH: ghLogPath,
+          GITHUB_REPOSITORY: 'synpress-io/metamask-extension-no-lavamoat',
+          GITHUB_TOKEN: 'test-token',
+        },
+      }),
+    ).rejects.toThrow(/no verifiable extension artifact/i);
+
+    expect(existsSync(ghLogPath)).toBe(false);
   });
 });

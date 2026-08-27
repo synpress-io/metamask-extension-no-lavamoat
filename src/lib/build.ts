@@ -4,11 +4,13 @@ import { access, writeFile } from 'node:fs/promises';
 import { totalmem } from 'node:os';
 import { join } from 'node:path';
 import { type BuildTarget, DEFAULT_BUILD_TARGET } from './contracts.js';
+import { type AppliedDependencyPatch, applyDependencyPatches } from './dependency-patch.js';
 import { MissingBuiltArtifactError } from './errors.js';
 
 export interface BuildArtifacts {
   chromeZipPath: string;
   firefoxZipPath?: string;
+  dependencyPatches: AppliedDependencyPatch[];
 }
 
 export interface ExecuteBuildOptions {
@@ -113,6 +115,11 @@ export async function executeNoLavaMoatBuild(
   await runCommand('corepack', ['enable'], options.sourceDir);
   await runCommand('yarn', ['install', '--immutable'], options.sourceDir);
 
+  // Correct the installed build-time dependency before anything compiles.
+  // Without this html-bundler-webpack-plugin deletes a service-worker chunk the
+  // packaged runtime still imports, and the build reports success anyway.
+  const dependencyPatches = await applyDependencyPatches(options.sourceDir);
+
   const [compileExecutable, ...compileArguments] = BUILD_SYSTEM_COMPILE_COMMAND;
   await runCommand(compileExecutable, [...compileArguments], options.sourceDir);
 
@@ -137,5 +144,6 @@ export async function executeNoLavaMoatBuild(
   return {
     chromeZipPath,
     firefoxZipPath: targets.includes('firefox') ? firefoxZipPath : undefined,
+    dependencyPatches,
   };
 }

@@ -7,6 +7,7 @@ import {
   verifyArtifactChunkCompleteness,
 } from '../lib/artifact-integrity.js';
 import { DEFAULT_BUILDER_REPOSITORY } from '../lib/contracts.js';
+import { NoVerifiableArtifactError } from '../lib/errors.js';
 import {
   type EnsureGitHubReleaseAssetsInput,
   ensureGitHubReleaseAssets,
@@ -128,6 +129,9 @@ const ghMutator: GitHubReleaseMutator = {
 /**
  * Last gate before anything reaches a GitHub release: re-verify the exact bytes
  * about to be uploaded, not just the ones the build step happened to check.
+ *
+ * A release with no inspectable artifact fails rather than passing vacuously —
+ * otherwise the gate silently becomes a no-op the moment asset naming changes.
  */
 async function verifyPublishableArtifacts(
   input: EnsureGitHubReleaseAssetsInput,
@@ -138,6 +142,10 @@ async function verifyPublishableArtifacts(
     if (asset.path.endsWith('.zip')) {
       verification.push(await verifyArtifactChunkCompleteness(asset.path));
     }
+  }
+
+  if (verification.length === 0) {
+    throw new NoVerifiableArtifactError(input.releaseTag);
   }
 
   return verification;

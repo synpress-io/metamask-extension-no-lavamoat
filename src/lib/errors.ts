@@ -53,8 +53,26 @@ export class UnsupportedArtifactManifestError extends BuilderError {
 export class UnrecognizedChunkReferencesError extends BuilderError {
   constructor() {
     super(
-      'No webpack chunk references were recognized in the packaged service worker; the chunk-reference parser no longer matches the built artifact',
+      'No webpack chunk-loading runtime was recognized anywhere in the packaged extension; the chunk-reference parser no longer matches the built artifact',
       'UNRECOGNIZED_CHUNK_REFERENCES',
+    );
+  }
+}
+
+export class DependencyPatchAnchorMissingError extends BuilderError {
+  constructor(packageName: string, filePath: string) {
+    super(
+      `Required build-time patch for ${packageName} (${filePath}) does not apply: the anchored source has changed, so the build would silently reintroduce the defect the patch prevents`,
+      'DEPENDENCY_PATCH_ANCHOR_MISSING',
+    );
+  }
+}
+
+export class NoVerifiableArtifactError extends BuilderError {
+  constructor(releaseTag: string) {
+    super(
+      `Release ${releaseTag} has no verifiable extension artifact; the publish gate would pass without inspecting anything`,
+      'NO_VERIFIABLE_ARTIFACT',
     );
   }
 }
@@ -62,7 +80,7 @@ export class UnrecognizedChunkReferencesError extends BuilderError {
 export class IncompleteBuiltArtifactError extends BuilderError {
   constructor(artifactName: string, missingChunkNames: string[]) {
     super(
-      `Built artifact ${artifactName} is missing ${missingChunkNames.length} webpack chunk(s) its service worker loads at install time: ${missingChunkNames.join(', ')}`,
+      `Built artifact ${artifactName} is missing ${missingChunkNames.length} webpack chunk(s) its packaged runtimes load: ${missingChunkNames.join(', ')}`,
       'INCOMPLETE_BUILT_ARTIFACT',
     );
   }

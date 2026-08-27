@@ -1,3 +1,5 @@
+import type { AppliedDependencyPatch } from './dependency-patch.js';
+
 export interface ReleaseManifestAsset {
   name: string;
   path: string;
@@ -15,6 +17,7 @@ export interface BuildReleaseManifestInput {
   targets: string[];
   buildCommand: string[];
   assets: ReleaseManifestAsset[];
+  dependencyPatches: AppliedDependencyPatch[];
   repository: string;
   commit?: string;
   timestamp: string;
@@ -42,6 +45,10 @@ export interface ReleaseManifest {
     targets: string[];
     command: string[];
     lavamoat: false;
+    // Build-time dependency corrections applied to the MetaMask workspace before
+    // compiling. Published so a consumer can always tell exactly how an artifact
+    // differs from what an unmodified upstream checkout would produce.
+    dependencyPatches: AppliedDependencyPatch[];
   };
   assets: ReleaseManifestAsset[];
 }
@@ -69,6 +76,7 @@ export function buildReleaseManifest(input: BuildReleaseManifestInput): ReleaseM
       targets: input.targets,
       command: input.buildCommand,
       lavamoat: false,
+      dependencyPatches: input.dependencyPatches,
     },
     assets: input.assets,
   };
