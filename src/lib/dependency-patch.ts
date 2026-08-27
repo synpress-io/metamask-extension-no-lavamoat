@@ -94,7 +94,7 @@ export const HTML_BUNDLER_SPLIT_CHUNK_PATCH: DependencyPatch = {
   appliedMarker: 'PATCHED by synpress-io/metamask-extension-no-lavamoat',
   reason:
     'Collection#prepareScriptData deletes a split chunk by filename after matching it by chunk id, dropping service-worker chunks that share a merged id with an HTML page chunk',
-  issueUrl: 'https://github.com/drptbl/synpress-ngen/issues/1',
+  issueUrl: 'https://github.com/webdiscus/html-bundler-webpack-plugin/issues/194',
 };
 
 export const REQUIRED_DEPENDENCY_PATCHES: DependencyPatch[] = [HTML_BUNDLER_SPLIT_CHUNK_PATCH];
