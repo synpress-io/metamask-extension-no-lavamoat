@@ -2,6 +2,10 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
+import {
+  type ArtifactChunkCompleteness,
+  verifyArtifactChunkCompleteness,
+} from '../lib/artifact-integrity.js';
 import { DEFAULT_BUILDER_REPOSITORY } from '../lib/contracts.js';
 import {
   type EnsureGitHubReleaseAssetsInput,
@@ -121,11 +125,30 @@ const ghMutator: GitHubReleaseMutator = {
   },
 };
 
+/**
+ * Last gate before anything reaches a GitHub release: re-verify the exact bytes
+ * about to be uploaded, not just the ones the build step happened to check.
+ */
+async function verifyPublishableArtifacts(
+  input: EnsureGitHubReleaseAssetsInput,
+): Promise<ArtifactChunkCompleteness[]> {
+  const verification: ArtifactChunkCompleteness[] = [];
+
+  for (const asset of input.assets) {
+    if (asset.path.endsWith('.zip')) {
+      verification.push(await verifyArtifactChunkCompleteness(asset.path));
+    }
+  }
+
+  return verification;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const publishInput = await loadPublishInput(args.buildOutputPath);
+  const artifactVerification = await verifyPublishableArtifacts(publishInput);
   const result = await ensureGitHubReleaseAssets(publishInput, ghMutator);
-  console.log(JSON.stringify(result, null, 2));
+  console.log(JSON.stringify({ ...result, artifactVerification }, null, 2));
 }
 
 main().catch((error: unknown) => {

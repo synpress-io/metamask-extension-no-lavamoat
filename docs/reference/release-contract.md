@@ -36,6 +36,7 @@
 
 ## Consumer Expectations
 
+- A published Chrome artifact always carries every webpack chunk its service worker loads at install time; the build fails rather than publishing an artifact that cannot boot.
 - Synpress should be able to pin a builder release tag and verify artifact checksums without rebuilding MetaMask locally.
 - Consumers should be able to verify released ZIP provenance with GitHub artifact attestations.
 - A builder release must be idempotent for a given upstream tag. Re-running the pipeline must either skip or reproduce the exact same release contract.

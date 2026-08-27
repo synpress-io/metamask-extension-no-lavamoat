@@ -2,6 +2,10 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import {
+  type ArtifactChunkCompleteness,
+  verifyArtifactChunkCompleteness,
+} from '../lib/artifact-integrity.js';
 import { buildCommandFor, executeNoLavaMoatBuild } from '../lib/build.js';
 import { resolveBuildConfigFromOfficialReleaseZip } from '../lib/config.js';
 import {
@@ -142,6 +146,14 @@ async function main() {
     },
   });
 
+  // Fail closed before anything is hashed, attested or published: a build that
+  // drops a chunk the service worker loads at install time still exits 0 and
+  // still produces a well-formed zip, so only this check can stop it.
+  const artifactVerification: ArtifactChunkCompleteness[] = [];
+  for (const artifactPath of Object.values(copiedArtifacts)) {
+    artifactVerification.push(await verifyArtifactChunkCompleteness(artifactPath));
+  }
+
   const releaseAssets: ReleaseManifestAsset[] = [
     {
       name: copiedArtifacts.chrome?.split('/').pop() as string,
@@ -186,6 +198,7 @@ async function main() {
         upstreamTag: release.tag,
         workspaceRoot: workspace.rootDir,
         configSource: config.source,
+        artifactVerification,
         checksums,
         manifest,
         publishPlan,

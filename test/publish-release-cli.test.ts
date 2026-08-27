@@ -1,6 +1,6 @@
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,8 +9,39 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const execFileAsync = promisify(execFile);
 
-function sha256(content: string): string {
+function sha256(content: Buffer | string): string {
   return createHash('sha256').update(content).digest('hex');
+}
+
+/**
+ * The publish CLI verifies service-worker chunk completeness on the exact bytes
+ * it uploads, so the Chrome asset has to be a real, complete extension zip.
+ */
+function writeExtensionZip(sandbox: string, zipPath: string): void {
+  const stagingDirectory = join(sandbox, 'extension');
+  mkdirSync(stagingDirectory, { recursive: true });
+
+  writeFileSync(
+    join(stagingDirectory, 'manifest.json'),
+    JSON.stringify({
+      manifest_version: 3,
+      version: '13.25.0.0',
+      background: { service_worker: 'service-worker.js' },
+    }),
+    'utf8',
+  );
+  writeFileSync(
+    join(stagingDirectory, 'service-worker.js'),
+    'r.u=e=>""+e+"."+({283:"a2e2948b20a4688231c5"})[e]+".js";r.e(283);',
+    'utf8',
+  );
+  writeFileSync(
+    join(stagingDirectory, '283.a2e2948b20a4688231c5.js'),
+    '(globalThis.webpackChunk??=[]).push([[283],{}]);\n',
+    'utf8',
+  );
+
+  execFileSync('zip', ['-qr', zipPath, '.'], { cwd: stagingDirectory });
 }
 
 const cleanupPaths: string[] = [];
@@ -37,10 +68,9 @@ describe('publish-release cli', () => {
     const uploadFlagPath = join(sandbox, 'uploaded.flag');
     const ghMockPath = join(sandbox, 'gh');
 
-    const chromeContents = 'zip-content';
     const checksumsContents = 'checksums';
     const manifestContents = '{"ok":true}\n';
-    writeFileSync(chromeAssetPath, chromeContents, 'utf8');
+    writeExtensionZip(sandbox, chromeAssetPath);
     writeFileSync(checksumsPath, checksumsContents, 'utf8');
     writeFileSync(manifestPath, manifestContents, 'utf8');
     writeFileSync(
@@ -80,7 +110,7 @@ exit 1
     );
     chmodSync(ghMockPath, 0o755);
 
-    const chromeDigest = sha256(chromeContents);
+    const chromeDigest = sha256(readFileSync(chromeAssetPath));
     const checksumsDigest = sha256(checksumsContents);
     const manifestDigest = sha256(manifestContents);
 
@@ -157,6 +187,15 @@ exit 1
       expect(output.created).toBe(false);
       expect(output.repaired).toBe(true);
       expect(output.missingAssetNames).toEqual([]);
+      expect(output.artifactVerification).toEqual([
+        {
+          artifactName: 'metamask-chrome-13.25.0-no-lava.zip',
+          serviceWorkerEntryName: 'service-worker.js',
+          complete: true,
+          referencedChunkNames: ['283.a2e2948b20a4688231c5.js'],
+          missingChunkNames: [],
+        },
+      ]);
 
       const ghLog = readFileSync(ghLogPath, 'utf8');
       expect(ghLog).toContain('release upload v13.25.0-no-lava');
